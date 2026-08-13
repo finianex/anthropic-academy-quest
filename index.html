@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>學習地圖｜Anthropic Academy 繁中</title>
+  <meta name="description" content="Anthropic Academy 全 20 門課的遊戲化繁體中文學習地圖：五座島、199 個節點，帶著自己的角色一路走完。">
+  <link rel="icon" href="public/favicon.svg">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/ui.css">
+  <link rel="stylesheet" href="styles/map.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要內容</a>
+  <header class="hud" id="hud"></header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="page-head">
+        <p class="eyebrow">Anthropic Academy · 繁體中文</p>
+        <h1>學習地圖</h1>
+        <p class="lead">20 門課、444 堂課，收成五座島與 199 個節點。挑一座島開始，角色會跟著你走。</p>
+      </div>
+
+      <!-- 繼續上一堂 -->
+      <a class="card card--pad resume" id="resume" href="#" hidden></a>
+
+      <!-- 世界地圖 -->
+      <section aria-labelledby="world-h">
+        <h2 id="world-h" class="sr-only">世界地圖</h2>
+        <div id="world"></div>
+        <p class="sr-only" id="world-help">五座島依建議順序排列：啟程島、素養島、講堂島、工坊島、雲端島。所有島隨時都可以進入。</p>
+      </section>
+
+      <!-- 進度總覽 -->
+      <section class="stats" id="stats" aria-label="學習進度總覽"></section>
+
+      <!-- 島嶼清單：地圖的無障礙替代版，也讓搜尋引擎讀得到 -->
+      <details class="alt" id="alt">
+        <summary>以清單檢視五座島</summary>
+        <div id="alt-body"></div>
+      </details>
+    </div>
+  </main>
+
+  <footer class="foot" id="foot"></footer>
+
+  <!-- 內容資料：classic script，掛 window 全域。
+       刻意不載入 content/notes.js（401 KB）—— 地圖不需要逐課筆記內容，
+       「哪些課有中文筆記」由 ACADEMY_VIDEO_ONLY 的補集就能判斷。 -->
+  <script src="content/courses.js"></script>
+  <script src="content/catalogs.js"></script>
+  <script src="content/official.js"></script>
+  <script src="content/route.js"></script>
+  <script type="module" src="app/boot-index.js"></script>
+</body>
+</html>

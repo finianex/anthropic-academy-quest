@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>島嶼路徑｜Anthropic Academy 繁中</title>
+  <meta name="description" content="一座島上的學習路徑，一堂一個節點，帶著角色一路走完。">
+  <link rel="icon" href="public/favicon.svg">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/ui.css">
+  <link rel="stylesheet" href="styles/map.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要內容</a>
+  <header class="hud" id="hud"></header>
+
+  <main id="main">
+    <div class="wrap">
+      <div id="head"></div>
+      <section id="path" aria-label="學習路徑"></section>
+      <p class="sr-only">路徑上的節點依建議順序排列。所有節點隨時都可以點，標示「尚早」只是建議，不會阻擋。</p>
+      <div id="error" hidden>
+        <div class="blank">
+          <h2>找不到這座島</h2>
+          <p>請回到世界地圖重新選擇。</p>
+          <a class="btn" href="index.html">回到世界地圖</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="foot" id="foot"></footer>
+
+  <script src="content/courses.js"></script>
+  <script src="content/catalogs.js"></script>
+  <script src="content/official.js"></script>
+  <script src="content/route.js"></script>
+  <script type="module" src="app/boot-island.js"></script>
+</body>
+</html>

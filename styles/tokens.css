@@ -1,0 +1,115 @@
+/*
+ * styles/tokens.css — 設計變數
+ *
+ * 設計概念：「桌遊紙盒」。每個可互動的東西都是一顆實體遊戲棋子——
+ * 有厚度、按下去會壓縮、放在一塊印刷過的紙板上。所以幾乎每個元件都有
+ * 一個 --edge（底緣厚度）而不是傳統的柔和陰影。
+ *
+ * ⚠ 對比度規則（這組高彩度色最容易踩的坑）
+ *   #58CC02 / #FFC800 / #1CB0F6 / #CE82FF 在白底上都遠低於 AA 的 4.5:1。
+ *   → 彩色只用於「填色、邊框、進度條、圖示」
+ *   → 文字一律用 --ink，彩底上的文字用白色
+ *   → 真的需要彩色文字時，只能用下面 *-text 那一組（全部實測 ≥4.9:1）
+ */
+
+:root {
+  color-scheme: light;
+
+  /* ── 主色：填色用 ───────────────────────────────────────── */
+  --green:        #58CC02;
+  --green-edge:   #46A302;   /* 底緣：主色壓暗約 18% */
+  --green-soft:   #E8FCD4;
+  --green-text:   #367C00;   /* 5.2:1 on white */
+
+  --blue:         #1CB0F6;
+  --blue-edge:    #1490CC;
+  --blue-soft:    #DDF4FF;
+  --blue-text:    #0A6E9E;   /* 5.4:1 */
+
+  --gold:         #FFC800;
+  --gold-edge:    #D9A400;
+  --gold-soft:    #FFF6D6;
+  --gold-text:    #8A6A00;   /* 4.9:1 */
+
+  --coral:        #FF4B4B;
+  --coral-edge:   #D93B3B;
+  --coral-soft:   #FFE6E6;
+  --coral-text:   #D62828;   /* 5.0:1 */
+
+  --purple:       #CE82FF;
+  --purple-edge:  #A85FD6;
+  --purple-soft:  #F5E9FF;
+  --purple-text:  #7B2FBE;   /* 7.1:1 */
+
+  /* ── 彩底上的前景色 ────────────────────────────────────────
+     全站規則：**彩底上的文字與圖示一律用深色，不用白色。**
+     白字在這組高彩度色上全部不合格（白 on #58CC02 只有 2.09:1），
+     而深墨反而過關（--ink on #58CC02 = 5.1:1、on #1CB0F6 = 4.5:1）。
+     只有下面兩個「刻意壓暗」的填色才配白字。 */
+  --on-tint:      var(--ink);   /* 綠／藍底上的文字 */
+  --on-gold:      #4A3800;      /* 金底上的文字，7.3:1 */
+  --coral-btn:    #E03131;      /* 壓暗的珊瑚，配白字 4.6:1 */
+  --purple-btn:   #9B4DD6;      /* 壓暗的紫，配白字 4.7:1 */
+
+  /* ── 中性 ──────────────────────────────────────────────── */
+  --ink:          #3C3C3C;   /* 11.0:1 — 所有正文 */
+  --ink-soft:     #6B6B6B;   /* 5.1:1 — 次要文字，仍過 AA */
+  /* 只用於裝飾與 disabled 控制項（WCAG 1.4.3 對停用元件有豁免）。
+     絕對不要拿來畫承載資訊的文字或圖示——它在白底上只有約 2:1。
+     承載資訊的次要文字一律用 --ink-soft。 */
+  --ink-faint:    #AFAFAF;
+  --line:         #E5E5E5;
+  --line-edge:    #D2D2D2;
+  --bg:           #FFFFFF;
+  --bg-board:     #FBFBF8;   /* 紙板底，比純白暖一點 */
+  --bg-sunk:      #F4F4F1;
+
+  /* ── 形狀 ──────────────────────────────────────────────── */
+  --r-sm:   10px;
+  --r:      16px;
+  --r-lg:   22px;
+  --r-xl:   28px;
+  --r-pill: 999px;
+
+  --edge:      4px;   /* 標準底緣厚度 */
+  --edge-thin: 3px;
+  --edge-thick:6px;
+
+  --bw: 2px;          /* 描邊寬度 */
+
+  /* ── 尺寸 ──────────────────────────────────────────────── */
+  --node:      56px;
+  --node-sm:   48px;
+  --avatar:    46px;
+  --tap:       44px;  /* 最小觸控目標 */
+
+  /* ── 動態 ──────────────────────────────────────────────── */
+  --t-fast:   120ms;
+  --t:        200ms;
+  --t-slow:   380ms;
+  --ease:     cubic-bezier(.2, .8, .3, 1);
+  --ease-pop: cubic-bezier(.34, 1.56, .64, 1);   /* 帶一點 overshoot */
+
+  /* ── 層級 ──────────────────────────────────────────────── */
+  --z-board:  1;
+  --z-node:   2;
+  --z-avatar: 3;
+  --z-hud:    20;
+  --z-sheet:  40;
+  --z-toast:  60;
+
+  /* ── 字體 ──────────────────────────────────────────────
+     CJK 網頁字體動輒好幾 MB，這個站堅持零外部請求，所以走系統堆疊。
+     識別度靠字重、字距與數字處理，不靠字體本身。 */
+  --font: "Noto Sans TC", "PingFang TC", "Microsoft JhengHei",
+          "Hiragino Sans GB", system-ui, sans-serif;
+  /* 數字是這個遊戲的語言（XP、等級、x/y），給它等寬與獨立字級 */
+  --font-num: ui-rounded, "SF Pro Rounded", "Segoe UI Variable Display",
+              var(--font);
+}
+
+/* 紙板底紋：內嵌 data-URI，約 190 bytes，不產生任何網路請求。
+   一個 24px 的點陣，透明度極低——存在感要到「幾乎看不到」的程度。 */
+:root {
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='2' cy='2' r='1' fill='%23000' opacity='.035'/%3E%3C/svg%3E");
+}

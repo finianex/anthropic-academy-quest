@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>我的角色｜Anthropic Academy 繁中</title>
+  <meta name="description" content="你的角色、等級、徽章與課堂筆記。">
+  <link rel="icon" href="public/favicon.svg">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/ui.css">
+  <link rel="stylesheet" href="styles/map.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要內容</a>
+  <header class="hud" id="hud"></header>
+
+  <main id="main">
+    <div class="wrap">
+      <div class="page-head">
+        <a class="crumb" href="index.html">← 世界地圖</a>
+        <h1>我的角色</h1>
+        <p class="lead">等級由學習進度決定，配件可以自由搭配。</p>
+      </div>
+
+      <section id="hero" aria-label="角色與等級"></section>
+
+      <section aria-labelledby="gear-h" class="block">
+        <h2 id="gear-h">換裝</h2>
+        <div id="gear"></div>
+      </section>
+
+      <section aria-labelledby="badge-h" class="block">
+        <h2 id="badge-h">徽章</h2>
+        <p class="block-sub" id="badge-sub"></p>
+        <div id="badges"></div>
+      </section>
+
+      <section aria-labelledby="notes-h" class="block">
+        <h2 id="notes-h">我的筆記</h2>
+        <div id="notes"></div>
+      </section>
+
+      <section aria-labelledby="data-h" class="block">
+        <h2 id="data-h">這台裝置上的資料</h2>
+        <div id="data"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="foot" id="foot"></footer>
+
+  <script src="content/courses.js"></script>
+  <script src="content/catalogs.js"></script>
+  <script src="content/official.js"></script>
+  <script src="content/route.js"></script>
+  <script type="module" src="app/boot-me.js"></script>
+</body>
+</html>

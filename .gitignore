@@ -1,0 +1,11 @@
+# 這個專案沒有建置流程，所以幾乎沒有東西需要忽略。
+.DS_Store
+Thumbs.db
+*.log
+
+# 編輯器
+.vscode/
+.idea/
+
+# 之後如果真的加了 Node 工具鏈
+node_modules/

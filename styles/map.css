@@ -1,0 +1,338 @@
+/*
+ * styles/map.css — 世界地圖與島嶼路徑
+ *
+ * 兩層結構：SVG 只畫路（裝飾、aria-hidden、pointer-events:none），
+ * HTML 畫節點（真正的 <a>，可 Tab、可讀屏）。
+ * 節點位置由 JS 以 px 寫進 --x / --y。
+ */
+
+/* ═══ 共用棋盤 ═══════════════════════════════════════════════ */
+.board {
+  position: relative;
+  margin: 8px 0 20px;
+}
+.board-road {
+  position: absolute;
+  inset: 0;
+  width: 100%; height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.board-road path { fill: none; stroke-linecap: round; }
+/* 路是雙描邊的：底下一條粗的當「路基」，上面一條細的當「路面」 */
+.board-road .bed  { stroke: var(--line); stroke-width: 11; }
+.board-road .top  { stroke: var(--line-edge); stroke-width: 5; stroke-dasharray: 11 10; }
+.board-road .top[data-walked="1"] { stroke: var(--green); stroke-dasharray: none; }
+/* 影片路線：點狀，是「這段路不在本站走」的視覺訊號 */
+.board-road .top[data-video="1"] { stroke-dasharray: 2 9; stroke-width: 5; }
+
+.board-nodes { position: relative; z-index: var(--z-node); }
+.board-nodes > li {
+  position: absolute;
+  left: var(--x); top: var(--y);
+  transform: translateX(-50%);
+}
+
+/* ═══ 節點（一顆棋子）════════════════════════════════════════ */
+.node {
+  display: grid;
+  justify-items: center;
+  gap: 7px;
+  width: 132px;
+  cursor: pointer;
+}
+.node-disc {
+  position: relative;
+  width: var(--node); height: var(--node);
+  display: grid; place-items: center;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  background: var(--bg-sunk);
+  color: var(--ink-soft);
+  font-family: var(--font-num);
+  font-size: 15px;
+  font-weight: 900;
+  box-shadow: 0 var(--edge) 0 var(--line-edge), 0 5px 10px rgba(0, 0, 0, .08);
+  transition: transform var(--t) var(--ease-pop), box-shadow var(--t) var(--ease);
+}
+.node:hover  .node-disc { transform: translateY(-3px); }
+.node:active .node-disc { transform: translateY(3px); box-shadow: 0 1px 0 var(--line-edge); }
+
+.node-label {
+  max-width: 128px;
+  color: var(--ink-soft);
+  font-size: 11.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  text-align: center;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.node-label small {
+  display: block;
+  margin-top: 2px;
+  color: var(--ink-soft);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+/* 章節節點（影片課用）：圓角方形，形狀本身就是「這是一個章節不是一堂課」的訊號 */
+.node[data-kind="section"] .node-disc { border-radius: 17px; }
+
+/* ── 狀態 ── */
+.node[data-state="done"] .node-disc {
+  background: var(--green);
+  color: var(--on-tint);
+  box-shadow: 0 var(--edge) 0 var(--green-edge), 0 5px 10px rgba(70, 163, 2, .22);
+}
+/* 影片課的完成是自我回報，用空心勾而不是實心勾——本站無法驗證，不假裝驗證了 */
+.node[data-state="done"][data-kind="section"] .node-disc {
+  background: var(--bg);
+  color: var(--green-text);
+  border-color: var(--green);
+  box-shadow: 0 var(--edge) 0 var(--green-edge);
+}
+.node[data-state="done"] .node-label { color: var(--ink); }
+
+.node[data-state="now"] .node-disc {
+  background: var(--bg);
+  color: var(--gold-text);
+  box-shadow: 0 0 0 4px var(--gold), 0 var(--edge) 0 var(--gold-edge), 0 6px 14px rgba(217, 164, 0, .3);
+  animation: node-pulse 2.6s var(--ease) infinite;
+}
+.node[data-state="now"] .node-label { color: var(--ink); font-weight: 900; }
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px var(--gold), 0 var(--edge) 0 var(--gold-edge), 0 6px 14px rgba(217, 164, 0, .30); }
+  50%      { box-shadow: 0 0 0 8px var(--gold-soft), 0 var(--edge) 0 var(--gold-edge), 0 6px 14px rgba(217, 164, 0, .18); }
+}
+
+.node[data-state="ahead"] .node-disc { opacity: .55; }
+.node[data-state="ahead"] .node-label { color: var(--ink-soft); }
+
+/* 節點上的小圖示 */
+.node-disc svg { width: 26px; height: 26px; }
+
+/* 跳關提示（點了「尚早」的節點才出現）*/
+.hint {
+  position: absolute;
+  left: 50%; top: calc(var(--node) + 6px);
+  z-index: var(--z-hud);
+  width: 232px;
+  padding: 14px;
+  border: var(--bw) solid var(--gold);
+  border-radius: var(--r);
+  background: var(--bg);
+  box-shadow: 0 var(--edge) 0 var(--gold-edge), 0 10px 24px rgba(0, 0, 0, .16);
+  transform: translateX(-50%);
+  text-align: left;
+}
+.hint p { font-size: 13px; margin-bottom: 10px; }
+.hint .row { gap: 8px; }
+
+/* ═══ 路段標題（課程名）══════════════════════════════════════ */
+.board-bands { position: relative; z-index: var(--z-node); }
+.band {
+  position: absolute;
+  left: 0; top: var(--y);
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.band::before, .band::after {
+  content: '';
+  flex: 1 1 auto;
+  height: var(--bw);
+  background: var(--line);
+  border-radius: var(--r-pill);
+}
+.band-chip {
+  flex: 0 0 auto;
+  max-width: min(74%, 460px);
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 18px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  box-shadow: 0 var(--edge-thin) 0 var(--line-edge);
+  font-size: 13.5px;
+  font-weight: 900;
+}
+.band-chip .n {
+  font-family: var(--font-num);
+  color: var(--ink-soft);
+  font-size: 12px;
+}
+.band-chip .band-count { color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+.band[data-done="1"] .band-chip { border-color: var(--green); background: var(--green-soft); box-shadow: 0 var(--edge-thin) 0 var(--green-edge); }
+.band[data-video="1"] .band-chip { border-style: dashed; }
+
+/* ═══ 腳色棋子 ═══════════════════════════════════════════════ */
+.token {
+  position: absolute;
+  left: var(--x); top: var(--y);
+  z-index: var(--z-avatar);
+  width: var(--avatar); height: var(--avatar);
+  /* 站在節點「上面」而不是蓋住它 */
+  transform: translate(-50%, -86%);
+  pointer-events: none;
+  transition: left var(--t-slow) var(--ease), top var(--t-slow) var(--ease);
+}
+.token svg { width: 100%; height: 100%; overflow: visible; }
+.token-bob { animation: bob 3.2s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+/* 投影：讓棋子看起來真的站在紙板上 */
+.token::after {
+  content: '';
+  position: absolute;
+  left: 50%; bottom: -5px;
+  width: 26px; height: 7px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, .18);
+  filter: blur(1.5px);
+  transform: translateX(-50%);
+}
+
+/* ═══ 世界地圖 ═══════════════════════════════════════════════
+   島的位置寫在 CSS（用 nth-child），因為只有 5 座、需要美術手感。
+   JS 讀 offsetLeft/Top 來畫連接路線，所以兩種版面共用同一段 JS。 */
+.world {
+  position: relative;
+  /* width/max-width 是必要的：aspect-ratio 搭配 min-height 時，瀏覽器會反推出寬度
+     （min-height 620 × 3/4.6 = 404px），在窄視窗下會撐破版面造成橫向捲動。
+     明確鎖住寬度之後，min-height 只影響高度。 */
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  min-height: 460px;
+  margin: 10px 0 24px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-xl);
+  background:
+    radial-gradient(120% 90% at 50% 0%, #F2FBFF 0%, transparent 60%),
+    var(--bg);
+  background-image: var(--grain), radial-gradient(120% 90% at 50% 0%, #F2FBFF 0%, transparent 60%);
+  box-shadow: 0 var(--edge-thick) 0 var(--line-edge);
+  overflow: hidden;
+}
+.world-road { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.world-road path {
+  fill: none;
+  stroke: var(--line-edge);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-dasharray: 3 11;
+}
+.world-road path[data-walked="1"] { stroke: var(--green); stroke-dasharray: 8 8; }
+
+.isle {
+  position: absolute;
+  left: var(--x); top: var(--y);
+  z-index: 2;
+  width: 152px;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.isle-disc {
+  position: relative;
+  width: 92px; height: 92px;
+  display: grid; place-items: center;
+  /* 每座島用不同的不規則圓角，看起來像形狀不同的島 */
+  border: 3px solid #fff;
+  box-shadow: 0 5px 0 var(--tint-edge), 0 10px 20px rgba(0, 0, 0, .13);
+  background: var(--tint);
+  color: var(--on-tint);
+  font-family: var(--font-num);
+  font-weight: 900;
+  font-size: 19px;
+  transition: transform var(--t) var(--ease-pop), box-shadow var(--t) var(--ease);
+}
+.isle:hover  .isle-disc { transform: translateY(-4px) scale(1.04); box-shadow: 0 8px 0 var(--tint-edge), 0 14px 26px rgba(0, 0, 0, .16); }
+.isle:active .isle-disc { transform: translateY(3px); box-shadow: 0 2px 0 var(--tint-edge); }
+.isle-name { font-size: 15px; font-weight: 900; color: var(--ink); }
+.isle-sub  { font-size: 11.5px; font-weight: 800; color: var(--ink-soft); }
+/* 進度環在島的外側，底下是接近白色的紙板——用白色描邊等於看不見。
+   改用深墨，既看得清楚，也和整站「墨線描邊」的造型語言一致。 */
+.isle .ring { position: absolute; inset: -9px; width: calc(100% + 18px); height: calc(100% + 18px); color: var(--ink); }
+
+.isle[data-tint="green"]  { --tint: var(--green);  --tint-edge: var(--green-edge); }
+.isle[data-tint="blue"]   { --tint: var(--blue);   --tint-edge: var(--blue-edge); }
+.isle[data-tint="gold"]   { --tint: var(--gold);   --tint-edge: var(--gold-edge); }
+.isle[data-tint="coral"]  { --tint: var(--coral);  --tint-edge: var(--coral-edge); }
+.isle[data-tint="purple"] { --tint: var(--purple); --tint-edge: var(--purple-edge); }
+.isle[data-tint="gold"] .isle-disc { color: var(--on-gold); }
+
+/* 島形：不規則圓角，每座不同 */
+.isle:nth-of-type(1) .isle-disc { border-radius: 52% 48% 42% 58% / 56% 44% 56% 44%; }
+.isle:nth-of-type(2) .isle-disc { border-radius: 44% 56% 58% 42% / 46% 58% 42% 54%; }
+.isle:nth-of-type(3) .isle-disc { border-radius: 58% 42% 48% 52% / 42% 52% 48% 58%; }
+.isle:nth-of-type(4) .isle-disc { border-radius: 46% 54% 52% 48% / 58% 42% 58% 42%; }
+.isle:nth-of-type(5) .isle-disc { border-radius: 50% 50% 44% 56% / 48% 56% 44% 52%; }
+
+/* 島的位置 —— 寬版：左下往右上的鋸齒 */
+.isle:nth-of-type(1) { --x: 14%; --y: 68%; }
+.isle:nth-of-type(2) { --x: 34%; --y: 30%; }
+.isle:nth-of-type(3) { --x: 55%; --y: 73%; }
+.isle:nth-of-type(4) { --x: 72%; --y: 29%; }
+.isle:nth-of-type(5) { --x: 89%; --y: 65%; }
+
+/* 進站時島依序彈出，一次編排好的載入動畫勝過散落各處的微互動 */
+.isle { animation: isle-in var(--t-slow) var(--ease-pop) both; }
+.isle:nth-of-type(1) { animation-delay: 40ms; }
+.isle:nth-of-type(2) { animation-delay: 110ms; }
+.isle:nth-of-type(3) { animation-delay: 180ms; }
+.isle:nth-of-type(4) { animation-delay: 250ms; }
+.isle:nth-of-type(5) { animation-delay: 320ms; }
+@keyframes isle-in {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(.72); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* pK–12 路徑地標：小一點，明確不是島 */
+.landmark {
+  position: absolute;
+  left: 55%; top: 30%;
+  z-index: 2;
+  width: 128px;
+  display: grid; justify-items: center; gap: 6px;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.landmark .flag {
+  width: 46px; height: 46px;
+  display: grid; place-items: center;
+  border: var(--bw) dashed var(--gold-edge);
+  border-radius: var(--r);
+  background: var(--gold-soft);
+  color: var(--gold-text);
+}
+.landmark span { font-size: 11px; font-weight: 800; color: var(--ink-soft); }
+
+/* 世界地圖：窄版改成直向鋸齒 */
+@media (max-width: 820px) {
+  .world { aspect-ratio: 3 / 4.6; min-height: 620px; }
+  .isle { width: 128px; }
+  .isle-disc { width: 76px; height: 76px; font-size: 16px; }
+  .isle:nth-of-type(1) { --x: 28%; --y: 11%; }
+  .isle:nth-of-type(2) { --x: 71%; --y: 29%; }
+  .isle:nth-of-type(3) { --x: 27%; --y: 48%; }
+  .isle:nth-of-type(4) { --x: 72%; --y: 67%; }
+  .isle:nth-of-type(5) { --x: 30%; --y: 87%; }
+  .landmark { left: 27%; top: 62%; width: 104px; }
+}
+
+/* ═══ 回到我的位置 ═══════════════════════════════════════════ */
+.locate {
+  position: fixed;
+  right: 18px; bottom: 20px;
+  z-index: var(--z-hud);
+}
+.locate[hidden] { display: none; }

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>課堂｜Anthropic Academy 繁中</title>
+  <meta name="description" content="一堂課的繁體中文重點，拆成一張張卡片推進。">
+  <link rel="icon" href="public/favicon.svg">
+  <link rel="stylesheet" href="styles/tokens.css">
+  <link rel="stylesheet" href="styles/base.css">
+  <link rel="stylesheet" href="styles/ui.css">
+  <link rel="stylesheet" href="styles/map.css">
+</head>
+<body>
+  <a class="skip" href="#main">跳到主要內容</a>
+  <header class="hud" id="hud"></header>
+
+  <main id="main">
+    <div class="wrap wrap--narrow">
+      <div id="head"></div>
+      <section class="flow" id="flow" aria-label="課堂卡片"></section>
+      <section id="after"></section>
+      <div id="error" hidden>
+        <div class="blank">
+          <h2>找不到這堂課</h2>
+          <p>請回到世界地圖重新選擇。</p>
+          <a class="btn" href="index.html">回到世界地圖</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer class="foot" id="foot"></footer>
+
+  <script src="content/courses.js"></script>
+  <script src="content/catalogs.js"></script>
+  <script src="content/official.js"></script>
+  <script src="content/route.js"></script>
+  <!-- 只有這一頁需要逐課筆記內容 -->
+  <script src="content/notes.js"></script>
+  <script type="module" src="app/boot-lesson.js"></script>
+</body>
+</html>
