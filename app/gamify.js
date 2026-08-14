@@ -55,6 +55,7 @@ function badgeMet(badge, f) {
 export function derive(state) {
   const progress = state?.progress || {};
   const notes = state?.notes || {};
+  const perfectIds = new Set();
 
   /* 已完成的課堂編號（s === 2），以及造訪過的課程 */
   const done = new Set();
@@ -66,6 +67,7 @@ export function derive(state) {
       if (!l) continue;
       if (l.s >= 1) any = true;
       if (l.s === 2) done.add(id);
+      if (l.p) perfectIds.add(id);        // 該堂練習全部第一次就答對
     }
     if (any) visited.add(slug);
   }
@@ -122,12 +124,24 @@ export function derive(state) {
     });
   }
 
+  /* 全對獎勵：存成每堂的旗標而不是一次性加分，這樣 XP 才能維持「完全推導」
+     ——取消完成時它會自動跟著消失，合併兩台裝置也不會重複計算。 */
+  let perfectCount = 0;
+  for (const id of perfectIds) if (done.has(id)) perfectCount++;
+  xp += perfectCount * XP.perfect;
+
   /* 筆記：只有達到最低字數的才算 */
   let notesCount = 0;
   for (const n of Object.values(notes)) {
     if (n && typeof n.body === 'string' && n.body.trim().length >= NOTE_MIN) notesCount++;
   }
   xp += notesCount * XP.note;
+
+  /* 複習 XP 是全站唯一的累加值。
+     複習答對無法從「目前狀態」反推（同一題可以被複習很多次），所以只能累加。
+     它是單調遞增的，所以合併兩台裝置時取 max 就正確，不會重複計算。 */
+  const reviewXp = Math.max(0, state?.game?.reviewXp | 0);
+  xp += reviewXp;
 
   /* 徽章 */
   const facts = {
@@ -145,6 +159,8 @@ export function derive(state) {
     xp,
     level: levelOf(xp),
     done,
+    perfectCount,
+    reviewXp,
     lessonsDone,
     sectionsDone,
     coursesDone: courseDone.size,

@@ -10,6 +10,7 @@ import { KEYS, NOTE_MAX } from './config.js';
 import * as local from './local.js';
 import { derive, diff } from './gamify.js';
 import { lessonLookup } from './catalog.js';
+import { grade } from './srs.js';
 
 const DEFAULT_AVATAR = {
   body: 'cat',
@@ -26,7 +27,8 @@ const state = {
   notes: {},      // { [lessonId]: { body, updatedAt, courseSlug } }
   game: { avatar: { ...DEFAULT_AVATAR } },
   current: null,  // { courseSlug, lessonId, at }
-  seen: {}        // 一次性提示
+  seen: {},       // 一次性提示
+  srs: {}         // { [itemKey]: { s, due, n, w } } 間隔重複
 };
 
 let view = null;
@@ -39,6 +41,7 @@ export function init() {
   state.notes    = local.read(KEYS.notes, {}) || {};
   state.current  = local.read(KEYS.current, null);
   state.seen     = local.read(KEYS.seen, {}) || {};
+  state.srs      = local.read(KEYS.srs, {}) || {};
 
   const g = local.read(KEYS.game, null);
   state.game = {
@@ -76,6 +79,7 @@ function commit(keys, mutate) {
     else if (k === KEYS.current) local.write(k, state.current);
     else if (k === KEYS.game) local.write(k, state.game);
     else if (k === KEYS.seen) local.write(k, state.seen);
+    else if (k === KEYS.srs) local.write(k, state.srs);
   }
   notify();
   return diff(before, view);
@@ -95,7 +99,7 @@ export const lessonState = (slug, id) => state.progress[slug]?.lessons?.[id]?.s 
  * 標記／取消標記一批課堂。
  * 一般課堂傳一個 id；純影片課的章節節點會一次傳該章節全部課堂。
  */
-export function markLessons(slug, ids, complete = true) {
+export function markLessons(slug, ids, complete = true, opts = {}) {
   if (!slug || !ids?.length) return [];
   const now = Date.now();
   return commit([KEYS.progress, KEYS.current], () => {
@@ -103,8 +107,19 @@ export function markLessons(slug, ids, complete = true) {
       const s = slot(slug, id);
       s.s = complete ? 2 : 1;
       s.at = now;
+      // 全對旗標只在達成時寫入，取消完成時清掉——這樣衍生的 XP 才會跟著退回
+      if (!complete) delete s.p;
+      else if (opts.perfect) s.p = true;
     }
     state.current = { courseSlug: slug, lessonId: ids[ids.length - 1], at: now };
+  });
+}
+
+/** 複習答對累加的 XP。全站唯一的累加值，原因見 gamify.derive 的註解。 */
+export function addReviewXp(n) {
+  if (!n) return [];
+  return commit([KEYS.game], () => {
+    state.game.reviewXp = Math.max(0, (state.game.reviewXp | 0) + n);
   });
 }
 
@@ -155,6 +170,26 @@ export function saveNote(lessonId, body) {
 
 export const allNotes = () => state.notes;
 
+/* ── 間隔重複 ────────────────────────────────────────────── */
+
+export const srs = () => state.srs;
+export const srsOf = (key) => state.srs[key] || null;
+
+/**
+ * 記錄一場練習的作答結果。
+ * results 來自 session.results()：[{ id, ok }]，ok 表示「第一次就答對」。
+ * 只寫 SRS，不動進度與 XP——那由呼叫端另外決定。
+ */
+export function gradeItems(results) {
+  if (!results?.length) return [];
+  const now = Date.now();
+  return commit([KEYS.srs], () => {
+    for (const { id, ok } of results) {
+      state.srs[id] = grade(state.srs[id], ok, now);
+    }
+  });
+}
+
 /* ── 腳色 ────────────────────────────────────────────────── */
 
 export const avatar = () => state.game.avatar;
@@ -182,6 +217,7 @@ export function resetAll() {
   state.notes = {};
   state.current = null;
   state.seen = {};
+  state.srs = {};
   state.game = { avatar: { ...DEFAULT_AVATAR } };
   view = derive(state);
   notify();

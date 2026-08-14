@@ -8,7 +8,9 @@ import * as local from './local.js';
 import { mountHud, mountFoot, ring, fmt, ICON, warnQuota } from './ui.js';
 import { mountWorld } from './map-world.js';
 import { resumePoint } from './progress.js';
-import { allIslands, index, allBadges } from './catalog.js';
+import { allIslands, index, allBadges, allCourses } from './catalog.js';
+import { dueKeys, nextDueAt, untilLabel, lessonIdOf } from './srs.js';
+import { REVIEW_MAX } from './config.js';
 
 store.init();
 local.onQuotaError(warnQuota);
@@ -16,6 +18,55 @@ local.onQuotaError(warnQuota);
 mountHud($('#hud'), { active: 'map' });
 mountFoot($('#foot'));
 mountWorld($('#world'));
+
+/* ── 複習入口 ───────────────────────────────────────────
+   這一頁刻意不載入 content/notes.js（401 KB），所以只用課綱驗證 key 的
+   lessonId 是否存在且不是純影片課——不需要看筆記內容就能算出到期題數。 */
+const review = $('#review');
+const validLessonIds = new Set();
+for (const c of allCourses()) {
+  if (c.videoOnly) continue;
+  for (const l of c.lessons) validLessonIds.add(l.id);
+}
+const keyOk = (k) => validLessonIds.has(lessonIdOf(k));
+
+function renderReview() {
+  const srs = store.srs();
+  const { total } = dueKeys(srs, keyOk, Date.now(), REVIEW_MAX);
+  const tracked = Object.keys(srs).filter(keyOk).length;
+
+  if (!tracked) { review.hidden = true; return; }
+
+  if (total > 0) {
+    review.href = 'review.html';
+    fill(review,
+      el('div', null,
+        el('span', { class: 'pill pill--purple', text: '該複習了' }),
+        el('h3', { text: `${total} 題等你重練`, style: { 'margin-top': '8px' } }),
+        el('span', { class: 'review-sub', text: total > REVIEW_MAX
+          ? `一次做 ${REVIEW_MAX} 題，跨課程混在一起`
+          : '從你學過的課裡挑出快忘記的題目' })
+      ),
+      el('span', { class: 'review-go' }, ICON.brain({ width: 22, height: 22 }))
+    );
+    review.hidden = false;
+    return;
+  }
+
+  const next = nextDueAt(srs, keyOk);
+  review.href = 'review.html';
+  fill(review,
+    el('div', null,
+      el('span', { class: 'pill', text: '複習' }),
+      el('h3', { text: '目前沒有到期的題目', style: { 'margin-top': '8px' } }),
+      el('span', { class: 'review-sub', text: next
+        ? `正在追蹤 ${fmt(tracked)} 個題目 · 下一批${untilLabel(next)}`
+        : `正在追蹤 ${fmt(tracked)} 個題目` })
+    ),
+    el('span', { class: 'review-go' }, ICON.brain({ width: 22, height: 22 }))
+  );
+  review.hidden = false;
+}
 
 /* ── 繼續上一堂 ─────────────────────────────────────────── */
 const resume = $('#resume');
@@ -91,6 +142,7 @@ function renderAlt(view) {
 }
 
 function render(view) {
+  renderReview();
   renderResume(view);
   renderStats(view);
   renderAlt(view);

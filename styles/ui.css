@@ -444,6 +444,258 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
   .pg-empty { display: none; }
 }
 
+/* ═══ 練習 ═══════════════════════════════════════════════════
+   底部回饋條是固定的，所以 .quiz 要留出等高的下方留白，
+   否則最後一個選項會被條蓋住。 */
+.quiz { padding-bottom: calc(var(--quiz-bar-h, 168px) + 28px); }
+
+.quiz-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(760px, 100% - 32px);
+  margin: 18px auto 22px;
+}
+.quiz-quit {
+  flex: 0 0 auto;
+  width: 36px; height: 36px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  color: var(--ink-soft);
+}
+.quiz-quit:hover { color: var(--ink); background: var(--bg-sunk); }
+.quiz-progress { flex: 1 1 auto; height: 16px; }
+.quiz-progress > i { background: linear-gradient(180deg, #7BE334, var(--green)); }
+
+.quiz-prompt { font-size: clamp(20px, 3.2vw, 26px); margin-bottom: 6px; outline: none; }
+.quiz-passage {
+  margin: 14px 0 4px;
+  padding: 16px 18px;
+  border: var(--bw) solid var(--blue-soft);
+  border-radius: var(--r);
+  background: var(--blue-soft);
+  color: #14435C;
+  font-size: 15.5px;
+  line-height: 1.8;
+}
+.quiz-answer { margin-top: 20px; }
+
+/* ── 單選 ── */
+.opts { display: grid; gap: 10px; }
+.opt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 15px 17px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg);
+  box-shadow: 0 var(--edge-thin) 0 var(--line-edge);
+  text-align: left;
+  font-size: 15px;
+  line-height: 1.7;
+  cursor: pointer;
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast), background var(--t-fast);
+}
+.opt:hover:not(:disabled) { border-color: var(--blue); background: var(--blue-soft); }
+.opt:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); }
+.opt[data-sel="1"] { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 var(--edge-thin) 0 var(--blue-edge); }
+.opt:disabled { cursor: default; }
+.opt[data-mark="right"] { border-color: var(--green); background: var(--green-soft); box-shadow: 0 var(--edge-thin) 0 var(--green-edge); }
+.opt[data-mark="wrong"] { border-color: var(--coral-btn); background: var(--coral-soft); box-shadow: 0 var(--edge-thin) 0 #B02525; }
+.opt-key {
+  width: 26px; height: 26px;
+  display: grid; place-items: center;
+  border: var(--bw) solid var(--line);
+  border-radius: 8px;
+  color: var(--ink-soft);
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 900;
+}
+.opt[data-sel="1"] .opt-key { border-color: var(--blue); color: var(--blue-text); }
+.opt[data-mark="right"] .opt-key { border-color: var(--green); color: var(--green-text); }
+.opt[data-mark="wrong"] .opt-key { border-color: var(--coral-btn); color: var(--coral-text); }
+@media (max-width: 650px) { .opt-key { display: none; } .opt { grid-template-columns: 1fr; } }
+
+/* ── 配對 ── */
+.match { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); gap: 10px; }
+.match-col { display: grid; gap: 10px; align-content: start; }
+.mchip {
+  padding: 13px 15px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg);
+  box-shadow: 0 var(--edge-thin) 0 var(--line-edge);
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.65;
+  cursor: pointer;
+  transition: border-color var(--t-fast), background var(--t-fast), opacity var(--t);
+}
+.mchip--l { font-weight: 900; }
+.mchip:hover { border-color: var(--blue); }
+.mchip[data-sel="1"] { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 var(--edge-thin) 0 var(--blue-edge); }
+.mchip[data-mark="wrong"] { border-color: var(--coral-btn); background: var(--coral-soft); animation: shake .32s var(--ease); }
+.mchip[data-done="1"] {
+  border-color: var(--green);
+  background: var(--green-soft);
+  color: var(--green-text);
+  box-shadow: none;
+  opacity: .62;
+  cursor: default;
+}
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@media (max-width: 650px) { .match { grid-template-columns: 1fr; } .match-col:first-child { order: 0; } }
+
+/* ── 排序 ── */
+.ord { display: grid; gap: 12px; }
+.ord-slots { display: grid; gap: 8px; min-height: 8px; }
+.ord-sep { color: var(--ink-soft); font-size: 12.5px; font-weight: 800; text-align: center; padding: 2px 0; }
+.ord-pool { display: grid; gap: 8px; }
+.ord-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 11px;
+  width: 100%;
+  padding: 12px 15px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg);
+  box-shadow: 0 var(--edge-thin) 0 var(--line-edge);
+  text-align: left;
+  font-size: 14px;
+  line-height: 1.65;
+  cursor: pointer;
+}
+.ord-row:hover { border-color: var(--blue); }
+.ord-row:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); }
+.ord-row--pool { background: var(--bg-sunk); }
+.ord-row[data-mark="right"] { border-color: var(--green); background: var(--green-soft); }
+.ord-row[data-mark="wrong"] { border-color: var(--coral-btn); background: var(--coral-soft); }
+.ord-n {
+  width: 25px; height: 25px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--blue);
+  color: var(--on-tint);
+  font-family: var(--font-num);
+  font-size: 12px;
+  font-weight: 900;
+}
+.ord-row--pool .ord-n { background: var(--line); color: var(--ink-soft); }
+
+/* ── 底部回饋條 ── */
+.quiz-bar {
+  position: fixed;
+  left: 0; right: 0; bottom: 0;
+  z-index: var(--z-hud);
+  border-top: var(--bw) solid var(--line);
+  background: var(--bg);
+  transition: background var(--t) var(--ease), border-color var(--t) var(--ease);
+}
+.quiz-bar[data-state="correct"] { background: var(--green-soft); border-color: var(--green); }
+.quiz-bar[data-state="wrong"]   { background: var(--coral-soft); border-color: var(--coral-btn); }
+.quiz-bar-in {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 16px 0 20px;
+}
+.quiz-verdict { min-width: 0; display: grid; gap: 6px; }
+.quiz-verdict-head { display: flex; align-items: center; gap: 9px; font-size: 17px; font-weight: 900; }
+.quiz-bar[data-state="correct"] .quiz-verdict-head { color: var(--green-text); }
+.quiz-bar[data-state="wrong"]   .quiz-verdict-head { color: var(--coral-text); }
+.quiz-explain {
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  max-height: 168px;
+  overflow: auto;
+}
+.quiz-requeue { color: var(--ink-soft); font-size: 12.5px; font-weight: 800; }
+.quiz-action { flex: 0 0 auto; min-width: 132px; }
+@media (max-width: 650px) {
+  .quiz-bar-in { flex-direction: column; align-items: stretch; gap: 12px; }
+  .quiz-action { width: 100%; }
+  /* 手機螢幕矮，回饋條不能吃掉半個畫面——說明文字自己捲 */
+  .quiz-explain { max-height: 30dvh; }
+  /* 回饋條最多佔 62% 視窗高，剩下的空間留給題目 */
+  .quiz-bar { max-height: 62dvh; overflow: auto; }
+}
+
+/* ── 練習結束 ── */
+.done-card { display: grid; gap: 16px; justify-items: center; text-align: center; padding: 34px 22px; }
+.done-card .big { font-family: var(--font-num); font-size: 46px; font-weight: 900; color: var(--green-text); }
+.done-stats { display: flex; gap: 22px; flex-wrap: wrap; justify-content: center; }
+.done-stat { display: grid; gap: 2px; }
+.done-stat b { font-family: var(--font-num); font-size: 21px; font-weight: 900; }
+.done-stat span { color: var(--ink-soft); font-size: 12px; font-weight: 800; }
+
+/* ═══ 教學卡（練習前的短說明）════════════════════════════════ */
+.teach-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
+.teach-skip { color: var(--ink-soft); font-size: 13.5px; font-weight: 900; padding: 10px 6px; }
+.teach-skip:hover { color: var(--green-text); }
+.teach-list { display: grid; gap: 12px; }
+.teach-item { padding: 14px 16px; border: var(--bw) solid var(--line); border-radius: var(--r); background: var(--bg-board); }
+.teach-item b { display: block; font-size: 15px; margin-bottom: 4px; }
+.teach-item p { color: var(--ink); font-size: 14px; line-height: 1.8; }
+
+/* ═══ 複習入口 ═══════════════════════════════════════════════ */
+.review-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+  border-color: var(--purple);
+  box-shadow: 0 var(--edge) 0 var(--purple-edge);
+}
+.review-card:hover { box-shadow: 0 6px 0 var(--purple-edge); }
+.review-card:active { box-shadow: 0 1px 0 var(--purple-edge); }
+.review-go {
+  flex: 0 0 auto;
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: var(--purple-btn);
+  color: #fff;
+  box-shadow: 0 var(--edge-thin) 0 #7B35B0;
+}
+.review-sub { display: block; margin-top: 4px; color: var(--ink-soft); font-size: 13px; font-weight: 800; }
+
+/* 熟練度總覽：讓間隔重複是看得見、可解釋的，而不是一個黑盒子 */
+.srs-list { display: grid; gap: 6px; }
+.srs-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg);
+}
+.srs-bars { display: flex; gap: 3px; }
+.srs-bars > i { width: 6px; height: 18px; border-radius: 3px; background: var(--line); }
+.srs-bars > i[data-on="1"] { background: var(--green); }
+.srs-txt b { display: block; font-size: 13.5px; }
+.srs-txt small { display: block; color: var(--ink-soft); font-size: 11.5px; font-weight: 700; }
+.srs-when { color: var(--ink-soft); font-size: 12px; font-weight: 800; white-space: nowrap; }
+@media (max-width: 650px) {
+  .srs-row { grid-template-columns: auto minmax(0, 1fr); }
+  .srs-when { grid-column: 2; }
+}
+
 /* ═══ 我的筆記 ═══════════════════════════════════════════════ */
 .note { display: grid; gap: 10px; }
 .note-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
