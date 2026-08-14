@@ -69,6 +69,12 @@ function distractors(target, n, exclude = new Set()) {
   const p = pool();
   const key = (x) => `${x.lessonId}:${x.idx}`;
   const taken = new Set([key(target), ...exclude]);
+  /* 也要按「文字」去重，不能只按身分。
+     有些概念標題在多門課裡一字不差（例如 Delegation 委派 出現在三門 AI 素養課），
+     只用 lessonId:idx 去重的話，兩個不同課程的同名概念會同時被選成干擾項，
+     那一題就出現兩個一模一樣的選項。 */
+  const seenTitle = new Set([target.title]);
+  const seenBody = new Set([target.body]);
   const out = [];
 
   const tiers = [
@@ -82,9 +88,11 @@ function distractors(target, n, exclude = new Set()) {
     for (const cand of shuffle(tier)) {
       if (out.length >= n) return out;
       if (taken.has(key(cand))) continue;
-      // 內容一樣的句子不能當干擾項（不同課偶爾會有相同的概念說明）
-      if (cand.body === target.body || cand.title === target.title) continue;
+      // 文字重複的不能當干擾項——不管它來自哪一堂
+      if (seenTitle.has(cand.title) || seenBody.has(cand.body)) continue;
       taken.add(key(cand));
+      seenTitle.add(cand.title);
+      seenBody.add(cand.body);
       out.push(cand);
     }
     if (out.length >= n) break;
@@ -156,15 +164,32 @@ function matchPairs(concepts, lessonId) {
   };
 }
 
-/** 排序：把流程步驟排回正確順序。正解直接就是資料的陣列順序。 */
+/**
+ * 排序：把流程步驟排回正確順序。正解直接就是資料的陣列順序。
+ *
+ * 步驟太多時只考一段連續區間（見 QUIZ.orderMax）。原因是課文改寫把長句
+ * 拆成細步之後，有些課的 workflow 長到 12 步——那樣的排序題是苦工不是測驗。
+ * 取連續區間而不是隨機抽樣，答案才仍然是一個真正的先後順序。
+ */
 function orderSteps(workflow, lessonId) {
   if (!workflow || workflow.length < 3) return null;
+
+  let steps = workflow;
+  let offset = 0;
+  if (workflow.length > QUIZ.orderMax) {
+    offset = Math.floor(Math.random() * (workflow.length - QUIZ.orderMax + 1));
+    steps = workflow.slice(offset, offset + QUIZ.orderMax);
+  }
+
   return {
     id: `w:${lessonId}`,
     type: 'order',
-    prompt: '把這些步驟排成正確的順序',
-    items: workflow.map((text, i) => ({ text, pos: i })),
-    explain: workflow.map((s, i) => `${i + 1}. ${s}`).join('\n')
+    // 只考其中一段時要講清楚，不然使用者會以為漏了步驟
+    prompt: steps.length === workflow.length
+      ? '把這些步驟排成正確的順序'
+      : `把這 ${steps.length} 個步驟排成正確的順序（整個流程共 ${workflow.length} 步）`,
+    items: steps.map((text, i) => ({ text, pos: i })),
+    explain: steps.map((s, i) => `${offset + i + 1}. ${s}`).join('\n')
   };
 }
 
@@ -181,32 +206,34 @@ function pitfallItem(note, lessonId, seed) {
   if (pits.length < 1 || steps.length < 3) return null;
 
   const inverted = coin();
-  if (inverted) {
-    if (pits.length < QUIZ.optionCount - 1) return null;
-    const right = steps[seed % steps.length];
+
+  /* 誤區與流程步驟偶爾會出現一模一樣的句子。真發生時，正解會同時出現在
+     干擾項裡——那一題就有兩個「正確」選項。所以挑干擾項時要把跟正解同字
+     的排除，數量不足就放棄出這一題（回 null），寧可少一題也不出壞題。 */
+  const build = (right, pool, prompt, explain) => {
+    const distract = pool.filter((t) => t !== right);
+    if (distract.length < QUIZ.optionCount - 1) return null;
     return {
       id: `p:${lessonId}`,
       type: 'choose',
-      prompt: '下面哪一個是這一課建議的做法？',
+      prompt,
       options: shuffle([
         { text: right, correct: true },
-        ...pick(pits, QUIZ.optionCount - 1).map((t) => ({ text: t, correct: false }))
+        ...pick(distract, QUIZ.optionCount - 1).map((t) => ({ text: t, correct: false }))
       ]),
-      explain: `建議做法：${right}\n\n其他三個是這一課點出的常見誤區。`
+      explain
     };
+  };
+
+  if (inverted) {
+    const right = steps[seed % steps.length];
+    return build(right, pits, '下面哪一個是這一課建議的做法？',
+      `建議做法：${right}\n\n其他三個是這一課點出的常見誤區。`);
   }
 
   const wrong = pits[seed % pits.length];
-  return {
-    id: `p:${lessonId}`,
-    type: 'choose',
-    prompt: '下面哪一個是這一課點出的常見誤區？',
-    options: shuffle([
-      { text: wrong, correct: true },
-      ...pick(steps, QUIZ.optionCount - 1).map((t) => ({ text: t, correct: false }))
-    ]),
-    explain: `常見誤區：${wrong}\n\n其他三個都是這一課建議的做法。`
-  };
+  return build(wrong, steps, '下面哪一個是這一課點出的常見誤區？',
+    `常見誤區：${wrong}\n\n其他三個都是這一課建議的做法。`);
 }
 
 /* ── 組一堂課的練習 ───────────────────────────────────────── */
