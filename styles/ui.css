@@ -6,6 +6,15 @@
  */
 
 /* ═══ 按鈕 ═══════════════════════════════════════════════════ */
+/* 按鈕與麵包屑裡的圖示一律不得伸縮，文字一律不得斷行。
+   少了這兩條，中文標籤會被圖示擠成一個字寬、逐字垂直排列，
+   按鈕高度就爆掉（實測 44px → 101px）。 */
+.btn > svg, .crumb > svg, .pill > svg, .quiz-verdict-head > svg,
+.hud-stat > svg, .teach-skip > svg, .notice-video > svg, .elsewhere > svg {
+  flex: 0 0 auto;
+}
+.btn > span, .crumb > span, .teach-skip > span { flex: 0 1 auto; }
+
 .btn {
   --bt: var(--green);
   --be: var(--green-edge);
@@ -16,6 +25,7 @@
   gap: 8px;
   min-height: var(--tap);
   padding: 12px 22px;
+  white-space: nowrap;
   border: 0;
   border-radius: var(--r);
   background: var(--bt);
@@ -51,9 +61,12 @@
   border: var(--bw) solid var(--line);
   padding: 10px 20px;
 }
-.btn--lg  { padding: 16px 30px; font-size: 17px; --edge: var(--edge-thick); }
-.btn--sm  { min-height: 36px; padding: 8px 14px; font-size: 13px; --edge: var(--edge-thin); }
+.btn--lg  { min-height: 54px; padding: 15px 30px; font-size: 17px; --edge: var(--edge-thick); }
+/* 小尺寸按鈕仍然要滿足 44px 的最小觸控目標——視覺上小，可點範圍不能小 */
+.btn--sm  { min-height: var(--tap); padding: 9px 15px; font-size: 13.5px; --edge: var(--edge-thin); }
 .btn--block { width: 100%; }
+/* 標籤太長時允許換行的例外（例如「已標記為看完（取消）」）*/
+.btn--wrap { white-space: normal; }
 
 /* ═══ 卡片 ═══════════════════════════════════════════════════ */
 .card {
@@ -107,7 +120,7 @@ a.card:active, button.card:active { transform: translateY(2px); box-shadow: 0 1p
   align-items: center;
   gap: 16px;
 }
-.hud-brand { display: inline-flex; align-items: center; gap: 10px; font-weight: 900; }
+.hud-brand { display: inline-flex; align-items: center; gap: 10px; min-height: var(--tap); font-weight: 900; }
 .hud-brand .logo {
   width: 38px; height: 38px;
   display: grid; place-items: center;
@@ -125,8 +138,15 @@ a.card:active, button.card:active { transform: translateY(2px); box-shadow: 0 1p
 .hud-stat--xp   { color: var(--gold-text); }
 .hud-stat--lv   { color: var(--purple-text); }
 
-.hud a.hud-link { color: var(--ink-soft); font-size: 13.5px; font-weight: 800; padding: 8px 4px; }
+.hud a.hud-link {
+  display: inline-flex; align-items: center;
+  min-height: var(--tap);
+  padding: 0 6px;
+  color: var(--ink-soft); font-size: 13.5px; font-weight: 800;
+  white-space: nowrap;
+}
 .hud a.hud-link:hover { color: var(--green-text); }
+.hud a.hud-link[aria-current="page"] { color: var(--ink); }
 
 /* 我的角色（HUD 右側）*/
 .hud-me {
@@ -280,8 +300,9 @@ a.card:active, button.card:active { transform: translateY(2px); box-shadow: 0 1p
 
 .crumb {
   display: inline-flex; align-items: center; gap: 6px;
-  color: var(--ink-soft); font-size: 13px; font-weight: 800;
-  padding: 6px 0;
+  min-height: var(--tap);          /* 觸控目標 */
+  color: var(--ink-soft); font-size: 13.5px; font-weight: 800;
+  white-space: nowrap;
 }
 .crumb:hover { color: var(--green-text); }
 
@@ -421,12 +442,12 @@ footer.foot {
 
 .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 22px; }
 .pg {
-  min-height: 84px;
+  min-height: 72px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 4px;
-  padding: 15px 18px;
+  gap: 3px;
+  padding: 13px 16px;
   border: var(--bw) solid var(--line);
   border-radius: var(--r);
   background: var(--bg);
@@ -458,7 +479,7 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 }
 .quiz-quit {
   flex: 0 0 auto;
-  width: 36px; height: 36px;
+  width: var(--tap); height: var(--tap);
   display: grid; place-items: center;
   border-radius: 50%;
   color: var(--ink-soft);
@@ -642,8 +663,18 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 .done-stat span { color: var(--ink-soft); font-size: 12px; font-weight: 800; }
 
 /* ═══ 教學卡（練習前的短說明）════════════════════════════════ */
-.teach-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 4px; }
-.teach-skip { color: var(--ink-soft); font-size: 13.5px; font-weight: 900; padding: 10px 6px; }
+/* 教學卡導覽：左＝退，右＝進，位置與方向永遠對應。
+   「跳過教學」不放在左邊——它是往前跳，跟左邊代表的方向相反。 */
+.teach-nav { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 6px; }
+.teach-nav .btn { min-width: 120px; }
+.teach-skip {
+  display: inline-flex; align-items: center; gap: 6px;
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 0; background: none; cursor: pointer;
+  color: var(--ink-soft); font-size: 13.5px; font-weight: 900;
+  white-space: nowrap;
+}
 .teach-skip:hover { color: var(--green-text); }
 .teach-list { display: grid; gap: 12px; }
 .teach-item { padding: 14px 16px; border: var(--bw) solid var(--line); border-radius: var(--r); background: var(--bg-board); }
@@ -736,23 +767,28 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 
 .island-meta { color: var(--ink-soft); font-size: 13.5px; font-weight: 800; }
 
-/* 建議下一步落在別座島時的指路 */
+/* 建議下一步落在別座島時的指路。
+   整條做成可點的連結，而不是在句子中間塞一個 23px 高的小連結——
+   這是一個明確的導覽動作，該有一個大方的觸控目標。 */
 .elsewhere {
   display: flex;
   align-items: center;
-  gap: 7px;
-  flex-wrap: wrap;
+  gap: 9px;
+  min-height: var(--tap);
   margin: 14px 0 0;
-  padding: 11px 15px;
+  padding: 12px 16px;
   border: var(--bw) solid var(--gold);
   border-radius: var(--r);
   background: var(--gold-soft);
+  box-shadow: 0 var(--edge-thin) 0 var(--gold-edge);
   color: var(--gold-text);
   font-size: 13.5px;
   font-weight: 800;
 }
-.elsewhere svg { flex: 0 0 auto; }
-.elsewhere-link { text-decoration: underline; text-underline-offset: 2px; font-weight: 900; }
+a.elsewhere:hover { box-shadow: 0 5px 0 var(--gold-edge); transform: translateY(-1px); }
+a.elsewhere:active { box-shadow: 0 1px 0 var(--gold-edge); transform: translateY(2px); }
+.elsewhere > svg { flex: 0 0 auto; }
+.elsewhere-go { margin-left: auto; flex: 0 0 auto; }
 
 /* 影片課說明：這段文案是承重結構，不是裝飾 */
 .notice-video {
@@ -898,10 +934,10 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 }
 .chapter-row[data-done="1"] { border-color: var(--green); background: var(--green-soft); }
 .chk {
-  width: 30px; height: 30px;
+  width: var(--tap); height: var(--tap);
   display: grid; place-items: center;
   border: var(--bw) solid var(--line-edge);
-  border-radius: 9px;
+  border-radius: 11px;
   background: var(--bg);
   color: var(--green-text);
   cursor: pointer;

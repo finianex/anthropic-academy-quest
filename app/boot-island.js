@@ -50,7 +50,7 @@ if (!isl) {
 
   /* 建議下一步可能落在別座島上——主幹刻意跨島（claude-101 → 素養島的基礎課 → …），
      所以這座島上可能一個「建議下一步」都沒有。那時要明確指路，不然使用者會卡住。 */
-  const elsewhere = el('p', { class: 'elsewhere', hidden: true });
+  const elsewhere = el('a', { class: 'elsewhere', hidden: true });
   $('#head').appendChild(elsewhere);
 
   mountIsland($('#path'), key);
@@ -64,12 +64,14 @@ if (!isl) {
     const nextIsland = next ? info(next.slug)?.islandKey : null;
     if (next && nextIsland && nextIsland !== key) {
       const ni = island(nextIsland);
+      elsewhere.href = `island.html?island=${nextIsland}`;
       fill(elsewhere,
-        ICON.pin({ width: 17, height: 17 }),
-        el('span', { text: '建議的下一步在' }),
-        el('a', { href: `island.html?island=${nextIsland}`, class: 'elsewhere-link', text: ni ? ni.zh : '別座島' }),
-        el('span', { text: `：${next.zh}` })
+        ICON.pin({ width: 18, height: 18 }),
+        el('span', { text: `建議的下一步在${ni ? ni.zh : '別座島'}：${next.zh}` }),
+        el('span', { class: 'elsewhere-go' }, ICON.arrowR({ width: 18, height: 18 }))
       );
+      elsewhere.setAttribute('aria-label',
+        `前往${ni ? ni.zh : '下一座島'}，建議的下一步是「${next.zh}」`);
       elsewhere.hidden = false;
     } else {
       elsewhere.hidden = true;

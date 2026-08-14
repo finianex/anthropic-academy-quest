@@ -124,8 +124,16 @@ function boot() {
       class: isLast ? 'btn btn--lg' : 'btn', type: 'button',
       on: { click: () => { if (isLast) startPractice(); else { ti++; renderTeach(); } } }
     }, isLast
-      ? [ICON.brain({ width: 19, height: 19 }), el('span', { text: done ? '再練一次' : '開始練習' })]
-      : [el('span', { text: '下一張' }), ICON.arrowR({ width: 17, height: 17 })]);
+      ? [ICON.brain({ width: 20, height: 20 }), el('span', { text: done ? '再練一次' : '開始練習' })]
+      : [el('span', { text: '下一張' }), ICON.arrowR({ width: 18, height: 18 })]);
+
+    /* 左邊永遠是「退」，右邊永遠是「進」。
+       「上一張」在第一張時停用而不是換成別的功能——同一個位置換成反方向的
+       動作（跳過＝往前）是最容易誤點的設計。 */
+    const prevBtn = el('button', {
+      class: 'btn btn--ghost', type: 'button', disabled: ti === 0,
+      on: { click: () => { if (ti > 0) { ti--; renderTeach(); } } }
+    }, ICON.arrowL({ width: 18, height: 18 }), el('span', { text: '上一張' }));
 
     fill(flow,
       done ? el('div', { class: 'done-strip' }, ICON.check({ width: 20, height: 20 }), el('span', { text: '這堂已完成' })) : null,
@@ -136,16 +144,20 @@ function boot() {
       ),
       el('article', { class: 'face' + (reducedMotion() ? '' : ' in'), tabindex: '-1' }, ...body),
       el('div', { class: 'teach-nav' },
-        ti > 0
-          ? el('button', { class: 'btn btn--ghost', type: 'button', on: { click: () => { ti--; renderTeach(); } } },
-              ICON.arrowL({ width: 17, height: 17 }), el('span', { text: '上一張' }))
-          : el('button', { class: 'teach-skip', type: 'button', on: { click: startPractice } },
-              el('span', { text: '跳過教學，直接練習 →' })),
-        nextBtn
+        prevBtn,
+        el('div', { class: 'row', style: { gap: '4px' } },
+          !isLast
+            ? el('button', { class: 'teach-skip', type: 'button', on: { click: startPractice } },
+                el('span', { text: '跳過教學' }), ICON.arrowR({ width: 15, height: 15 }))
+            : null,
+          nextBtn
+        )
       )
     );
 
-    fill(after, noteEditor(lessonId), officialRow(), pager());
+    /* 教學階段刻意不放「上一課／下一課」：那會讓人在還沒練習前就跳走，
+       而這一版的規則是「做完練習才算過關」。要離開這一堂就用左上角的麵包屑。 */
+    fill(after, noteEditor(lessonId), officialRow());
   }
 
   /* ══ 練習階段 ══════════════════════════════════════════ */
@@ -191,18 +203,24 @@ function boot() {
           stat(`${acc}%`, '第一次就答對'),
           stat(wasDone ? '—' : `+${lessonXp(slug) + (perfect ? XP.perfect : 0)}`, 'XP')
         ),
+        /* 一個前進、一個複看、一個離開。刻意不再放「上一課／下一課」分頁器
+           ——那會出現第二顆「下一課」，兩顆大小又不一樣，反而讓人猶豫。 */
         el('div', { class: 'row', style: { 'justify-content': 'center', 'margin-top': '6px' } },
           pos.next
             ? el('a', { class: 'btn btn--lg',
                 href: `lesson.html?course=${encodeURIComponent(slug)}&lesson=${encodeURIComponent(pos.next.id)}` },
-                el('span', { text: '下一課' }), ICON.arrowR({ width: 19, height: 19 }))
+                el('span', { text: '下一課' }), ICON.arrowR({ width: 20, height: 20 }))
             : el('a', { class: 'btn btn--lg', href: backHref }, el('span', { text: `回到${isl ? isl.zh : '地圖'}` })),
           el('button', { class: 'btn btn--ghost', type: 'button', on: { click: () => { ti = 0; renderTeach(); } } },
-            el('span', { text: '再看一次教學' }))
+            el('span', { text: '再看一次教學' })),
+          pos.next
+            ? el('a', { class: 'crumb', href: backHref },
+                ICON.arrowL({ width: 15, height: 15 }), el('span', { text: isl ? isl.zh : '世界地圖' }))
+            : null
         )
       )
     );
-    fill(after, noteEditor(lessonId), officialRow(), pager());
+    fill(after, noteEditor(lessonId), officialRow());
   }
 
   const stat = (v, l) => el('div', { class: 'done-stat' }, el('b', { text: v }), el('span', { text: l }));

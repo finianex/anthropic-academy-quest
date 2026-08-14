@@ -34,13 +34,22 @@ export function mountQuiz(host, opts) {
     el('div', { class: 'quiz-bar-in wrap wrap--narrow' }, verdict, action)
   );
 
+  /* 離開練習會丟掉這一場的作答，所以動過手之後要確認一次。
+     還沒答過任何一題就直接走，不用多問。 */
+  let answeredAny = false;
+  const quitEl = opts.quitHref
+    ? el('a', {
+        class: 'quiz-quit', href: opts.quitHref,
+        'aria-label': opts.quitLabel || '離開練習',
+        on: { click: (e) => {
+          if (!answeredAny) return;
+          if (!window.confirm('離開練習的話，這一場的作答不會保留。要離開嗎？')) e.preventDefault();
+        } }
+      }, ICON.close({ width: 22, height: 22 }))
+    : el('span');
+
   const quizEl = el('div', { class: 'quiz' },
-      el('div', { class: 'quiz-top' },
-        opts.quitHref
-          ? el('a', { class: 'quiz-quit', href: opts.quitHref, 'aria-label': opts.quitLabel || '離開練習' }, ICON.close())
-          : el('span'),
-        bar
-      ),
+      el('div', { class: 'quiz-top' }, quitEl, bar),
       el('div', { class: 'quiz-body wrap wrap--narrow' }, promptEl, passageEl, answerEl)
   );
   host.replaceChildren(quizEl, feedback);
@@ -253,6 +262,7 @@ export function mountQuiz(host, opts) {
   /* ── 判定與回饋 ─────────────────────────────────────────── */
   function finishItem(item, correct) {
     state = 'answered';
+    answeredAny = true;
     const res = session.answer(correct);
     opts.onAnswer?.(res, item);
     setProgress();

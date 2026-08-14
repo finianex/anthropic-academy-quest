@@ -23,25 +23,41 @@ export function ring(pct, { size = 110, stroke = 7 } = {}) {
   );
 }
 
-/* ═══ 小圖示 ═════════════════════════════════════════════════ */
-const ic = (d, extra) => svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true', focusable: 'false', ...extra },
-  svg('path', { d, fill: 'none', stroke: 'currentColor', 'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+/* ═══ 小圖示 ═════════════════════════════════════════════════
+ * 每個圖示都**必須**有明確尺寸。沒有 width/height 的 inline SVG 在 flex
+ * 容器裡沒有可靠的固有尺寸，瀏覽器會讓它去搶空間，把旁邊的文字擠成
+ * 一個字寬——中文是逐字斷行的，於是「下一張」就變成三個字垂直排列，
+ * 按鈕跟著被撐到 101px 高。所以這裡預設 20px，而且每個 ICON 都要
+ * 把呼叫端傳進來的尺寸轉交出去（以前定義成 () => ic(d) 會把參數吃掉）。
+ */
+const ic = (d, extra) => svg('svg', {
+  viewBox: '0 0 24 24', width: 20, height: 20,
+  'aria-hidden': 'true', focusable: 'false',
+  ...extra
+}, svg('path', {
+  d, fill: 'none', stroke: 'currentColor',
+  'stroke-width': 2.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+}));
 
 export const ICON = {
-  check:  () => ic('M4.5 12.5l5 5 10-11'),
-  checkThin: () => svg('svg', { viewBox: '0 0 24 24', 'aria-hidden': 'true' },
-    svg('path', { d: 'M4.5 12.5l5 5 10-11', fill: 'none', stroke: 'currentColor', 'stroke-width': 2, 'stroke-dasharray': '3 2.4', 'stroke-linecap': 'round' })),
-  film:   () => ic('M3 6h18v12H3zM8 6v12M16 6v12'),
-  star:   () => ic('M12 3l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3 1.2-6.5L2.5 9.9 9.1 9z'),
-  arrowL: () => ic('M14 6l-6 6 6 6'),
-  arrowR: () => ic('M10 6l6 6-6 6'),
-  map:    () => ic('M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3zM9 4v13M15 7v13'),
-  lock:   () => ic('M6 11h12v9H6zM9 11V8a3 3 0 016 0v3'),
-  pin:    () => ic('M12 21s7-6.3 7-11a7 7 0 10-14 0c0 4.7 7 11 7 11zM12 10.5v.01'),
-  flag:   () => ic('M6 21V4h11l-1.6 4L17 12H6'),
-  close:  () => ic('M6 6l12 12M18 6L6 18'),
-  cross:  () => ic('M6 6l12 12M18 6L6 18'),
-  brain:  () => ic('M9 4a3 3 0 00-3 3 3 3 0 00-1 5.8V17a3 3 0 003 3h1V4zM15 4a3 3 0 013 3 3 3 0 011 5.8V17a3 3 0 01-3 3h-1V4z')
+  check:  (a) => ic('M4.5 12.5l5 5 10-11', a),
+  checkThin: (a) => svg('svg', {
+    viewBox: '0 0 24 24', width: 20, height: 20, 'aria-hidden': 'true', focusable: 'false', ...a
+  }, svg('path', {
+    d: 'M4.5 12.5l5 5 10-11', fill: 'none', stroke: 'currentColor',
+    'stroke-width': 2, 'stroke-dasharray': '3 2.4', 'stroke-linecap': 'round'
+  })),
+  film:   (a) => ic('M3 6h18v12H3zM8 6v12M16 6v12', a),
+  star:   (a) => ic('M12 3l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 18l-5.9 3 1.2-6.5L2.5 9.9 9.1 9z', a),
+  arrowL: (a) => ic('M14 6l-6 6 6 6', a),
+  arrowR: (a) => ic('M10 6l6 6-6 6', a),
+  map:    (a) => ic('M3 7l6-3 6 3 6-3v13l-6 3-6-3-6 3zM9 4v13M15 7v13', a),
+  lock:   (a) => ic('M6 11h12v9H6zM9 11V8a3 3 0 016 0v3', a),
+  pin:    (a) => ic('M12 21s7-6.3 7-11a7 7 0 10-14 0c0 4.7 7 11 7 11zM12 10.5v.01', a),
+  flag:   (a) => ic('M6 21V4h11l-1.6 4L17 12H6', a),
+  close:  (a) => ic('M6 6l12 12M18 6L6 18', a),
+  cross:  (a) => ic('M6 6l12 12M18 6L6 18', a),
+  brain:  (a) => ic('M9 4a3 3 0 00-3 3 3 3 0 00-1 5.8V17a3 3 0 003 3h1V4zM15 4a3 3 0 013 3 3 3 0 011 5.8V17a3 3 0 01-3 3h-1V4z', a)
 };
 
 /* ═══ HUD ════════════════════════════════════════════════════ */
