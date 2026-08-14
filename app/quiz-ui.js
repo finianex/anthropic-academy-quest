@@ -10,7 +10,7 @@
  * 按〔繼續〕才進下一題。答錯時不會直接跳過去——你一定會看到正確答案。
  */
 
-import { el, fill, clear, reducedMotion } from './dom.js';
+import { el, fill, clear, reducedMotion, scrollTop } from './dom.js';
 import { ICON } from './ui.js';
 
 const shuffle = (a) => { const b = a.slice(); for (let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
@@ -297,8 +297,12 @@ export function mountQuiz(host, opts) {
     const item = node.item;
 
     if (state === 'answered') {
-      if (session.remaining === 0) opts.onFinish?.(session);
-      else render();
+      // 換到下一題＝整個內容換掉，一定要回到最上方。
+      // 使用者常常是捲到下面點最後一個選項才作答的，不捲回去的話
+      // 下一題的題目會在畫面上方看不到的地方。
+      if (session.remaining === 0) { opts.onFinish?.(session); return; }
+      scrollTop();
+      render();
       return;
     }
 

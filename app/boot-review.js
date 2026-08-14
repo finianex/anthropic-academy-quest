@@ -7,7 +7,7 @@
  * 「這題是 Claude Code 那一課的」。
  */
 
-import { $, el, fill, clear } from './dom.js';
+import { $, el, fill, clear, scrollTop } from './dom.js';
 import * as store from './store.js';
 import * as local from './local.js';
 import { mountHud, mountFoot, showEvents, fmt, ICON, warnQuota } from './ui.js';
@@ -143,6 +143,7 @@ function finish(session) {
   const acc = Math.round(session.accuracy() * 100);
   const left = Math.max(0, total - session.total);
 
+  scrollTop();
   renderHead();
   fill($('#flow'),
     el('div', { class: 'wrap wrap--narrow' },

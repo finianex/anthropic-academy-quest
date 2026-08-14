@@ -10,7 +10,7 @@
  * 和上一版最根本的差別。
  */
 
-import { $, el, fill, clear, reducedMotion } from './dom.js';
+import { $, el, fill, clear, reducedMotion, scrollTop } from './dom.js';
 import * as store from './store.js';
 import * as local from './local.js';
 import { mountHud, mountFoot, showEvents, fmt, ICON, warnQuota } from './ui.js';
@@ -126,10 +126,14 @@ function boot() {
       }
     }
 
+    /* 翻卡＝內容整批換掉，所以每次都回到最上方。
+       長的概念卡會讓人捲到下面，不捲回去的話下一張的標題會在畫面上方看不到。 */
+    const goCard = (n) => { ti = n; scrollTop(); renderTeach(); };
+
     const isLast = ti === teach.length - 1;
     const nextBtn = el('button', {
       class: isLast ? 'btn btn--lg' : 'btn', type: 'button',
-      on: { click: () => { if (isLast) startPractice(); else { ti++; renderTeach(); } } }
+      on: { click: () => { if (isLast) startPractice(); else goCard(ti + 1); } }
     }, isLast
       ? [ICON.brain({ width: 20, height: 20 }), el('span', { text: done ? '再練一次' : '開始練習' })]
       : [el('span', { text: '下一張' }), ICON.arrowR({ width: 18, height: 18 })]);
@@ -139,7 +143,7 @@ function boot() {
        動作（跳過＝往前）是最容易誤點的設計。 */
     const prevBtn = el('button', {
       class: 'btn btn--ghost', type: 'button', disabled: ti === 0,
-      on: { click: () => { if (ti > 0) { ti--; renderTeach(); } } }
+      on: { click: () => { if (ti > 0) goCard(ti - 1); } }
     }, ICON.arrowL({ width: 18, height: 18 }), el('span', { text: '上一張' }));
 
     fill(flow,
@@ -177,7 +181,7 @@ function boot() {
     const session = createSession(items);
     clear(head);
     clear(after);
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    scrollTop();
 
     mountQuiz(flow, {
       session,
@@ -196,6 +200,8 @@ function boot() {
     showEvents(events);
 
     const acc = Math.round(session.accuracy() * 100);
+    // 剛才是在畫面底部答完最後一題的，成績要從最上方開始看
+    scrollTop();
     renderHead();
 
     fill(flow,
@@ -218,7 +224,8 @@ function boot() {
                 href: `lesson.html?course=${encodeURIComponent(slug)}&lesson=${encodeURIComponent(pos.next.id)}` },
                 el('span', { text: '下一課' }), ICON.arrowR({ width: 20, height: 20 }))
             : el('a', { class: 'btn btn--lg', href: backHref }, el('span', { text: `回到${isl ? isl.zh : '地圖'}` })),
-          el('button', { class: 'btn btn--ghost', type: 'button', on: { click: () => { ti = 0; renderTeach(); } } },
+          el('button', { class: 'btn btn--ghost', type: 'button',
+            on: { click: () => { ti = 0; scrollTop(); renderTeach(); } } },
             el('span', { text: '再看一次教學' })),
           pos.next
             ? el('a', { class: 'crumb', href: backHref },

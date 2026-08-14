@@ -118,3 +118,21 @@ export function safeImgSrc(url) {
 /** 使用者是否要求減少動態效果。 */
 export const reducedMotion = () =>
   window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+
+/**
+ * 回到頁面最上方。
+ *
+ * 用在「內容整批換掉」的時候——翻教學卡、進下一題、顯示成績。
+ * 刻意用瞬間跳（behavior:'auto'）而不是平滑捲動：內容已經換成新的了，
+ * 沒有空間連續性可以保留，平滑捲動只會讓人看著新內容緩慢移動，反而更暈。
+ *
+ * 注意 styles/base.css 有 `html { scroll-behavior: smooth }`，所以這裡一定要
+ * 明確指定 behavior，否則會被那條規則接管。
+ */
+export function scrollTop() {
+  try {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  } catch {
+    window.scrollTo(0, 0);      // 舊瀏覽器不支援物件參數
+  }
+}
