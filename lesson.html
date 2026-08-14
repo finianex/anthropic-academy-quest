@@ -36,8 +36,24 @@
   <script src="content/catalogs.js"></script>
   <script src="content/official.js"></script>
   <script src="content/route.js"></script>
-  <!-- 只有這一頁需要逐課筆記內容 -->
-  <script src="content/notes.js"></script>
+  <!-- 逐課筆記：一門課一個檔案。只有這一頁和 review.html 需要載入。
+       拆檔的理由是「改某一門課不會碰到其他課」，順序不影響結果
+       （每個檔案都是 Object.assign 進同一個物件）。這裡照建議路線排。 -->
+  <script src="content/notes/claude-101.js"></script>
+  <script src="content/notes/ai-fluency-framework-foundations.js"></script>
+  <script src="content/notes/ai-capabilities-and-limitations.js"></script>
+  <script src="content/notes/introduction-to-claude-cowork.js"></script>
+  <script src="content/notes/claude-code-101.js"></script>
+  <script src="content/notes/introduction-to-agent-skills.js"></script>
+  <script src="content/notes/introduction-to-subagents.js"></script>
+  <script src="content/notes/claude-code-in-action.js"></script>
+  <script src="content/notes/claude-platform-101.js"></script>
+  <script src="content/notes/ai-fluency-for-educators.js"></script>
+  <script src="content/notes/ai-fluency-for-students.js"></script>
+  <script src="content/notes/teaching-ai-fluency.js"></script>
+  <script src="content/notes/ai-fluency-for-nonprofits.js"></script>
+  <script src="content/notes/ai-fluency-for-small-businesses.js"></script>
+  <script src="content/notes/ai-fluency-for-builders.js"></script>
   <script type="module" src="app/boot-lesson.js"></script>
 </body>
 </html>
