@@ -2,11 +2,16 @@
  * app/cards.js — 練習前的短教學卡
  *
  * 這裡刻意只有 3 張卡，而且每一張都是「等一下練習會考的東西」，不是完整讀物。
- * 舊版把一堂課拆成 7–11 張逐一翻的閱讀卡；那本質上還是分頁的文章，
- * 讀完按一下就算學完，沒有任何回想的動作。
+ * 教學卡是**可跳過的預習**，真正決定「這堂過了沒有」的是練習。
  *
- * 現在的定位是：教學卡是**可跳過的預習**，真正決定「這堂過了沒有」的是練習。
- * 所以卡片要短、要能一眼掃完，而不是要好看。
+ * 筆記支援兩個為了「快速理解」而加的欄位：
+ *   note.tldr          一句話重點（≤40 字），最先看到的東西
+ *   concepts[i][2]     清單型補充資料（選填）
+ *
+ * 為什麼清單要獨立成第三個元素，而不是塞進說明文字裡：
+ * concepts[i][1] 會直接變成選擇題的選項，而清單塞成句子之後動輒 200 字以上
+ * （改版前最長 306 字），當選項根本讀不完。拆開之後說明文字保持一句話，
+ * 清單只在教學卡顯示、永遠不會進到題目裡。
  */
 
 /**
@@ -18,13 +23,14 @@ export function buildTeachCards(note, lesson) {
   if (!note) return [];
   const cards = [];
 
-  /* 1. 重點 + 具體例子：先給一個抽象概述，再馬上給一個落地的例子 */
-  if (note.overview) {
+  /* 1. 重點 + 具體例子：先給一句話結論，再馬上給一個落地的例子 */
+  if (note.overview || note.tldr) {
     cards.push({
       kind: 'overview',
       kindZh: '本課重點',
       title: lesson?.zh || '本課重點',
-      body: note.overview,
+      tldr: note.tldr || null,
+      body: note.overview || '',
       example: note.example || null
     });
   }
@@ -36,7 +42,11 @@ export function buildTeachCards(note, lesson) {
       kind: 'concepts',
       kindZh: '核心概念',
       title: `這一課的 ${concepts.length} 個概念`,
-      list: concepts.map(([title, body]) => ({ title, body }))
+      list: concepts.map(([title, body, items]) => ({
+        title,
+        body,
+        items: Array.isArray(items) ? items.filter(Boolean) : null
+      }))
     });
   }
 

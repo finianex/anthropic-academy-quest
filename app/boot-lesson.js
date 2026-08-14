@@ -98,7 +98,9 @@ function boot() {
 
     const body = [el('h2', { class: 'selectable', text: c.title })];
     if (c.kind === 'overview') {
-      body.push(el('p', { class: 'selectable', text: c.body }));
+      // 一句話重點放在最前面、字級最大——這是「快速理解」的入口
+      if (c.tldr) body.push(el('p', { class: 'tldr selectable', text: c.tldr }));
+      if (c.body) body.push(el('p', { class: 'selectable', text: c.body }));
       if (c.example) {
         body.push(el('div', { class: 'teach-item', style: { 'margin-top': '6px' } },
           el('b', { text: '具體例子' }),
@@ -108,7 +110,12 @@ function boot() {
       body.push(el('div', { class: 'teach-list' }, ...c.list.map((x) =>
         el('div', { class: 'teach-item' },
           el('b', { class: 'selectable', text: x.title }),
-          el('p', { class: 'selectable', text: x.body })))));
+          el('p', { class: 'selectable', text: x.body }),
+          // 清單型補充：只在這裡顯示，不會變成選擇題的選項
+          x.items
+            ? el('ul', { class: 'teach-items selectable' }, ...x.items.map((i) => el('li', { text: i })))
+            : null
+        ))));
     } else if (c.kind === 'howto') {
       if (c.workflow.length) {
         body.push(el('ol', { class: 'flowlist selectable' }, ...c.workflow.map((s) => el('li', { text: s }))));

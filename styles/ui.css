@@ -681,6 +681,37 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 .teach-item b { display: block; font-size: 15px; margin-bottom: 4px; }
 .teach-item p { color: var(--ink); font-size: 14px; line-height: 1.8; }
 
+/* 一句話重點：整堂課最先看到、字級最大的一行 */
+.tldr {
+  margin-bottom: 4px;
+  padding: 14px 16px;
+  border-left: 4px solid var(--green);
+  border-radius: 0 var(--r) var(--r) 0;
+  background: var(--green-soft);
+  color: #1F4A00;
+  font-size: clamp(16px, 2.4vw, 18px);
+  font-weight: 900;
+  line-height: 1.7;
+}
+
+/* 清單型補充：那些本來被硬塞進句子裡的列舉 */
+.teach-items { display: grid; gap: 5px; margin-top: 8px; }
+.teach-items li {
+  position: relative;
+  padding-left: 16px;
+  color: var(--ink);
+  font-size: 13.5px;
+  line-height: 1.75;
+}
+.teach-items li::before {
+  content: '';
+  position: absolute;
+  left: 3px; top: 10px;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--green);
+}
+
 /* ═══ 複習入口 ═══════════════════════════════════════════════ */
 .review-card {
   display: flex;

@@ -13,7 +13,7 @@
  */
 
 import { QUIZ } from './config.js';
-import { allCourses } from './catalog.js';
+import { allCourses, lessonLookup } from './catalog.js';
 
 /* ── 亂數工具 ─────────────────────────────────────────────── */
 const shuffle = (arr) => {
@@ -90,6 +90,22 @@ function distractors(target, n, exclude = new Set()) {
     if (out.length >= n) break;
   }
   return out;
+}
+
+/**
+ * 把 note.concepts 轉成帶「出身」的概念物件。
+ *
+ * lessonId / slug / islandKey 是 distractors() 分層挑選的依據，少了它們
+ * 四層過濾全部落空，會直接掉到最後一層「全站隨機」——那正是這個函式存在的原因。
+ * （早期版本只給 {title, body, idx}，導致同課優先完全沒有生效。）
+ */
+function conceptsOf(note, lessonId) {
+  const hit = lessonLookup(lessonId);
+  const slug = hit?.slug ?? null;
+  const islandKey = hit?.course?.islandKey ?? null;
+  return (note.concepts || [])
+    .map(([title, body], idx) => ({ title, body, idx, lessonId, slug, islandKey }))
+    .filter((c) => c.title && c.body);
 }
 
 /* ── 各題型 ──────────────────────────────────────────────── */
@@ -202,10 +218,7 @@ function pitfallItem(note, lessonId, seed) {
  */
 export function buildExercises(note, lessonId) {
   if (!note) return [];
-  const concepts = (note.concepts || [])
-    .map(([title, body], idx) => ({ title, body, idx }))
-    .filter((c) => c.title && c.body);
-
+  const concepts = conceptsOf(note, lessonId);
   const items = [];
 
   /* 每個概念一題，交替考「名→說明」與「說明→名」，兩個方向都練到 */
@@ -240,20 +253,15 @@ export function buildFromKey(key) {
 
   if (kind === 'c') {
     const idx = Number(tail);
-    const pair = (note.concepts || [])[idx];
-    if (!pair) return null;
-    const c = { title: pair[0], body: pair[1], idx };
-    if (!c.title || !c.body) return null;
+    const c = conceptsOf(note, lessonId).find((x) => x.idx === idx);
+    if (!c) return null;
     return coin() ? chooseBody(c, lessonId) : chooseTitle(c, lessonId);
   }
   if (kind === 'w') {
     return orderSteps((note.workflow || []).filter(Boolean), lessonId);
   }
   if (kind === 'm') {
-    const concepts = (note.concepts || [])
-      .map(([title, body], idx) => ({ title, body, idx }))
-      .filter((c) => c.title && c.body);
-    return matchPairs(concepts, lessonId);
+    return matchPairs(conceptsOf(note, lessonId), lessonId);
   }
   if (kind === 'p') {
     const p = pitfallItem(note, lessonId, Number(tail) || 0);
