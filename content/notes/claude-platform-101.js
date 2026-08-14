@@ -70,7 +70,7 @@ Object.assign(window.ACADEMY_LESSON_NOTES, {
       '取得 API 金鑰，存進環境變數檔。',
       '確認那個檔案已被版本控制忽略。',
       '安裝對應語言的 SDK。',
-      '呼叫 messages.create，把三個參數都設好。',
+      '呼叫 messages.create，設定 model、max_tokens、messages。',
       '要固定行為或語氣就加上 system 提示。',
       '解析回應時走訪 content 陣列，依區塊類型處理。'
     ],

@@ -123,7 +123,7 @@ Object.assign(window.ACADEMY_LESSON_NOTES, {
       '依角色收斂工具權限，只給真正需要的。',
       '沒被啟動就修 description，回傳不好用就修輸出格式。'
     ],
-    example: '課程的 code review subagent 輸出格式共六段。Summary：審了什麼、整體評估。Critical Issues：必須立刻修的資安漏洞、資料完整性風險、邏輯錯誤。Major Issues：品質問題、架構偏離、明顯效能疑慮。Minor Issues：風格不一致、文件缺漏、小幅最佳化。Recommendations 給建議。Approval Status 要明確說可否 merge／deploy。再加第 7 段 Obstacles Encountered，收攏環境和相依問題。',
+    example: '課程的 code review subagent 輸出格式共六段。Summary：審了什麼、整體評估。Critical Issues：必須立刻修的資安漏洞、資料完整性風險、邏輯錯誤。Major Issues：品質問題、架構偏離、明顯效能疑慮。Minor Issues：風格不一致、文件缺漏、小幅最佳化。第五段是 Recommendations。Approval Status 要明確說可否 merge／deploy。再加第 7 段 Obstacles Encountered，收攏環境和相依問題。',
     pitfalls: [
       '沒定義輸出格式，它就沒有停止點，容易跑太久。',
       '沒要求回報障礙，它自己解掉的問題就這樣消失了。',

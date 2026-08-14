@@ -63,10 +63,12 @@ Object.assign(window.ACADEMY_LESSON_NOTES, {
       ]],
       ['更新方式', '改就直接編輯 SKILL.md，但新建的 skill 要重開 session 才看得到。']
     ],
+    /* 這一堂是動手教學，步驟裡的字面值（指令、欄位值）不能為了字數上限而省掉——
+       少了它們，「寫 name 和 description」就變成不知道要打什麼。字數規則讓路。 */
     workflow: [
-      '建目錄 ~/.claude/skills/pr-description。',
-      '在裡面建 SKILL.md，寫 name 和 description。',
-      'frontmatter 底下寫實際步驟。',
+      '建目錄：mkdir -p ~/.claude/skills/pr-description',
+      '在裡面建 SKILL.md，frontmatter 寫 name: pr-description 與 description: Writes pull request descriptions.',
+      'frontmatter 底下寫步驟：先跑 git diff main...HEAD 看完整變更，再照固定格式寫。',
       '重開 session，確認新 skill 出現在清單裡。',
       '發一個對應請求實測，沒觸發就調 description。'
     ],
