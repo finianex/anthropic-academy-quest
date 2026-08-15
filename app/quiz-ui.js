@@ -1,10 +1,9 @@
 /*
  * app/quiz-ui.js — 練習介面
  *
- * 課堂練習與複習共用同一套。三種作答方式：
+ * 課堂練習與複習共用同一套。兩種作答方式：
  *   choose  單選，選完按檢查
  *   match   配對，**每配一對就立刻判定**（配錯兩張一起閃紅並退回）
- *   order   排序，點步驟依序放進答案區，放滿才能檢查
  *
  * 底部回饋條是整個手感的關鍵：答完之後條會變綠或變紅、把正解與說明攤開，
  * 按〔繼續〕才進下一題。答錯時不會直接跳過去——你一定會看到正確答案。
@@ -119,7 +118,6 @@ export function mountQuiz(host, opts) {
     clear(answerEl);
     if (item.type === 'choose') renderChoose(item);
     else if (item.type === 'match') renderMatch(item);
-    else if (item.type === 'order') renderOrder(item);
 
     setAction('檢查', false);
     promptEl.focus({ preventScroll: true });
@@ -228,54 +226,6 @@ export function mountQuiz(host, opts) {
     setAction('把左右配起來', false);
   }
 
-  /* ── 排序 ──────────────────────────────────────────────── */
-  function renderOrder(item) {
-    const slots = el('ol', { class: 'ord-slots', 'aria-label': '你的順序' });
-    const poolEl = el('div', { class: 'ord-pool', role: 'group', 'aria-label': '可選的步驟' });
-    const chosen = [];
-
-    const refresh = () => {
-      clear(slots);
-      chosen.forEach((s, i) => {
-        slots.appendChild(el('li', null,
-          el('button', {
-            class: 'ord-row', type: 'button',
-            'aria-label': `第 ${i + 1} 步：${s.text}，點擊移除`,
-            on: { click: () => { if (state === 'answered') return; chosen.splice(i, 1); refresh(); } }
-          },
-            el('span', { class: 'ord-n', text: String(i + 1) }),
-            el('span', { class: 'selectable', text: s.text })
-          )
-        ));
-      });
-      const used = new Set(chosen.map((c) => c.pos));
-      [...poolEl.children].forEach((b) => { b.hidden = used.has(Number(b.dataset.pos)); });
-      const full = chosen.length === item.items.length;
-      pending = full ? chosen.map((c) => c.pos) : null;
-      setAction(full ? '檢查' : `再放 ${item.items.length - chosen.length} 個`, full);
-    };
-
-    shuffle(item.items).forEach((s) => {
-      poolEl.appendChild(el('button', {
-        class: 'ord-row ord-row--pool', type: 'button', data: { pos: s.pos },
-        on: { click: () => { if (state === 'answered') return; chosen.push(s); refresh(); } }
-      }, el('span', { class: 'ord-n', text: '+' }), el('span', { class: 'selectable', text: s.text })));
-    });
-
-    answerEl.appendChild(el('div', { class: 'ord' }, slots, el('div', { class: 'ord-sep', text: '↑ 點下面的步驟依序放上去' }), poolEl));
-    refresh();
-  }
-
-  function gradeOrder(item) {
-    const ok = pending && pending.every((p, i) => p === i);
-    [...slots_of().children].forEach((li, i) => {
-      const btn = li.querySelector('.ord-row');
-      if (btn) btn.dataset.mark = pending[i] === i ? 'right' : 'wrong';
-    });
-    return ok;
-  }
-  const slots_of = () => answerEl.querySelector('.ord-slots');
-
   /* ── 判定與回饋 ─────────────────────────────────────────── */
   function finishItem(item, correct) {
     state = 'answered';
@@ -330,9 +280,6 @@ export function mountQuiz(host, opts) {
     if (item.type === 'choose') {
       if (pending === null) return;
       finishItem(item, gradeChoose(item));
-    } else if (item.type === 'order') {
-      if (!pending) return;
-      finishItem(item, gradeOrder(item));
     }
     // match 是配完自動判定，不經過這個按鈕
   });
@@ -344,7 +291,7 @@ export function mountQuiz(host, opts) {
     if (state === 'answered') return;
     const n = Number(e.key);
     if (n >= 1 && n <= 9) {
-      const btn = answerEl.querySelectorAll('.opt')[n - 1] || answerEl.querySelectorAll('.ord-row--pool:not([hidden])')[n - 1];
+      const btn = answerEl.querySelectorAll('.opt')[n - 1];
       if (btn) { btn.click(); e.preventDefault(); }
     }
   });

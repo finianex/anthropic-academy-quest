@@ -55,9 +55,14 @@ export const clearSpot = (lessonId) => setSpot(lessonId, 0);
  * @param {object} want { kind:'lesson'|'review', lessonId? }
  * @returns {object|null} { snapshot, at, ... }，對不上或過期就回 null
  */
+/* 存檔格式版本。移除排序題時從 1 進到 2：舊的快照裡可能有 type:'order'
+   的題目，而那個渲染器已經不存在了，接續回去會是一題空白。版本對不上
+   就直接丟掉——損失是一場沒做完的練習，遠小於卡在一題畫不出來的題目。 */
+const LIVE_V = 2;
+
 export function getLive(want) {
   const v = local.read(KEYS.live, null);
-  if (!v || v.v !== 1 || !v.snapshot) return null;
+  if (!v || v.v !== LIVE_V || !v.snapshot) return null;
 
   if (Date.now() - (v.at || 0) > LIVE_TTL_DAYS * DAY) { clearLive(); return null; }
   if (want.kind && v.kind !== want.kind) return null;
@@ -73,7 +78,7 @@ export function saveLive(kind, session, extra = {}) {
   try {
     const snapshot = session.snapshot();
     if (!snapshot.queue.length) { clearLive(); return; }
-    local.write(KEYS.live, { v: 1, kind, at: Date.now(), snapshot, ...extra });
+    local.write(KEYS.live, { v: LIVE_V, kind, at: Date.now(), snapshot, ...extra });
   } catch (e) {
     // 存不下來不該影響作答，頂多是下次不能接續
     console.warn('[aaq] 練習進度存檔失敗：', e);

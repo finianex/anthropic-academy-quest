@@ -3,13 +3,16 @@
  *
  * 設計上的硬約束：**不編造任何內容。** 每一題的正解都是資料裡本來就有的
  * 事實，不是我推論出來的：
- *   - 排序題的正確順序就是 note.workflow 的陣列順序
  *   - 配對題的配對關係就是 note.concepts 的 [標題, 說明] 配對
  *   - 誤區題的正解就是 note.pitfalls 的其中一項
  * 干擾項一律從別處「已存在的真實句子」取用，不自行造句。
  *
  * 為什麼沒有克漏字題：實測 742 個概念裡，只有 5 個的標題有出現在自己的
  * 說明文字中，所以無法可靠地把關鍵詞挖空。與其用啟發式亂挖，不如不做。
+ *
+ * 為什麼沒有排序題：做過一版（把 note.workflow 排回正確順序），後來拿掉。
+ * workflow 的內容仍然有考——誤區題的「哪一個是這一課建議的做法」用的就是
+ * 它——只是不再考步驟之間的先後。
  */
 
 import { QUIZ } from './config.js';
@@ -165,35 +168,6 @@ function matchPairs(concepts, lessonId) {
 }
 
 /**
- * 排序：把流程步驟排回正確順序。正解直接就是資料的陣列順序。
- *
- * 步驟太多時只考一段連續區間（見 QUIZ.orderMax）。原因是課文改寫把長句
- * 拆成細步之後，有些課的 workflow 長到 12 步——那樣的排序題是苦工不是測驗。
- * 取連續區間而不是隨機抽樣，答案才仍然是一個真正的先後順序。
- */
-function orderSteps(workflow, lessonId) {
-  if (!workflow || workflow.length < 3) return null;
-
-  let steps = workflow;
-  let offset = 0;
-  if (workflow.length > QUIZ.orderMax) {
-    offset = Math.floor(Math.random() * (workflow.length - QUIZ.orderMax + 1));
-    steps = workflow.slice(offset, offset + QUIZ.orderMax);
-  }
-
-  return {
-    id: `w:${lessonId}`,
-    type: 'order',
-    // 只考其中一段時要講清楚，不然使用者會以為漏了步驟
-    prompt: steps.length === workflow.length
-      ? '把這些步驟排成正確的順序'
-      : `把這 ${steps.length} 個步驟排成正確的順序（整個流程共 ${workflow.length} 步）`,
-    items: steps.map((text, i) => ({ text, pos: i })),
-    explain: steps.map((s, i) => `${offset + i + 1}. ${s}`).join('\n')
-  };
-}
-
-/**
  * 誤區辨識。兩個方向隨機出：
  *   正向 → 一個誤區 + 三個建議做法，問「哪一個是誤區」
  *   反向 → 一個建議做法 + 三個誤區，問「哪一個是建議做法」
@@ -241,7 +215,7 @@ function pitfallItem(note, lessonId, seed) {
 /**
  * @param {object} note    content/notes.js 的一筆
  * @param {string} lessonId
- * @returns {Array} 題目陣列（已打亂），實測每堂 7–11 題
+ * @returns {Array} 題目陣列（已打亂），每堂 6–10 題
  */
 export function buildExercises(note, lessonId) {
   if (!note) return [];
@@ -257,9 +231,6 @@ export function buildExercises(note, lessonId) {
   const m = matchPairs(concepts, lessonId);
   if (m) items.push(m);
 
-  const o = orderSteps((note.workflow || []).filter(Boolean), lessonId);
-  if (o) items.push(o);
-
   for (let i = 0; i < QUIZ.pitfallItems; i++) {
     const p = pitfallItem(note, lessonId, i);
     if (p) items.push({ ...p, id: `p:${lessonId}:${i}` });
@@ -270,7 +241,10 @@ export function buildExercises(note, lessonId) {
 
 /**
  * 依 SRS 的項目 key 重建單一題目，供複習用。
- * key 格式：c:<lessonId>:<idx> / w:<lessonId> / m:<lessonId> / p:<lessonId>:<n>
+ * key 格式：c:<lessonId>:<idx> / m:<lessonId> / p:<lessonId>:<n>
+ *
+ * `w:` 是已經移除的排序題。舊使用者的 SRS 裡可能還留著這種 key，
+ * 這裡回 null，store.init() 的搬移會把它們清掉。
  */
 export function buildFromKey(key) {
   const notes = window.ACADEMY_LESSON_NOTES || {};
@@ -283,9 +257,6 @@ export function buildFromKey(key) {
     const c = conceptsOf(note, lessonId).find((x) => x.idx === idx);
     if (!c) return null;
     return coin() ? chooseBody(c, lessonId) : chooseTitle(c, lessonId);
-  }
-  if (kind === 'w') {
-    return orderSteps((note.workflow || []).filter(Boolean), lessonId);
   }
   if (kind === 'm') {
     return matchPairs(conceptsOf(note, lessonId), lessonId);
@@ -302,7 +273,6 @@ export function itemKeysOf(note, lessonId) {
   if (!note) return [];
   const keys = [];
   (note.concepts || []).forEach(([t, b], idx) => { if (t && b) keys.push(`c:${lessonId}:${idx}`); });
-  if ((note.workflow || []).filter(Boolean).length >= 3) keys.push(`w:${lessonId}`);
   if ((note.concepts || []).length >= 3) keys.push(`m:${lessonId}`);
   const pits = (note.pitfalls || []).filter(Boolean);
   const steps = (note.workflow || []).filter(Boolean);

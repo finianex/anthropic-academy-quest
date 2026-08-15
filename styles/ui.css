@@ -724,44 +724,6 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 }
 @media (max-width: 650px) { .match { grid-template-columns: 1fr; } .match-col:first-child { order: 0; } }
 
-/* ── 排序 ── */
-.ord { display: grid; gap: 12px; }
-.ord-slots { display: grid; gap: 8px; min-height: 8px; }
-.ord-sep { color: var(--ink-soft); font-size: 12.5px; font-weight: 800; text-align: center; padding: 2px 0; }
-.ord-pool { display: grid; gap: 8px; }
-.ord-row {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 11px;
-  width: 100%;
-  padding: 12px 15px;
-  border: var(--bw) solid var(--line);
-  border-radius: var(--r);
-  background: var(--bg);
-  box-shadow: 0 var(--edge-thin) 0 var(--line-edge);
-  text-align: left;
-  font-size: 14px;
-  line-height: 1.65;
-  cursor: pointer;
-}
-.ord-row:hover { border-color: var(--blue); }
-.ord-row:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); }
-.ord-row--pool { background: var(--bg-sunk); }
-.ord-row[data-mark="right"] { border-color: var(--green); background: var(--green-soft); }
-.ord-row[data-mark="wrong"] { border-color: var(--coral-btn); background: var(--coral-soft); }
-.ord-n {
-  width: 25px; height: 25px;
-  display: grid; place-items: center;
-  border-radius: 50%;
-  background: var(--blue);
-  color: var(--on-tint);
-  font-family: var(--font-num);
-  font-size: 12px;
-  font-weight: 900;
-}
-.ord-row--pool .ord-n { background: var(--line); color: var(--ink-soft); }
-
 /* ── 底部回饋條 ── */
 .quiz-bar {
   position: fixed;

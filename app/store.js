@@ -43,6 +43,16 @@ export function init() {
   state.seen     = local.read(KEYS.seen, {}) || {};
   state.srs      = local.read(KEYS.srs, {}) || {};
 
+  /* 排序題（key 前綴 w:）已經移除。舊使用者的 SRS 裡還留著這些項目，
+     它們現在出不了題，留著只會讓首頁的「到期題數」多算——那個數字算的是
+     key，但複習頁真的去建題時會全部拿到 null，於是承諾 5 題卻只出 3 題。
+     一次性清掉，之後就不會再產生。 */
+  const stale = Object.keys(state.srs).filter((k) => k.startsWith('w:'));
+  if (stale.length) {
+    stale.forEach((k) => delete state.srs[k]);
+    local.write(KEYS.srs, state.srs);
+  }
+
   const g = local.read(KEYS.game, null);
   state.game = {
     ...g,
