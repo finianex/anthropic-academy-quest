@@ -23,6 +23,7 @@ import {
   officialLessonUrl, island, lessonLookup
 } from './catalog.js';
 import { lessonXp } from './gamify.js';
+import * as sfx from './sfx.js';
 import { NOTE_MIN, NOTE_SAVE_DEBOUNCE, XP } from './config.js';
 
 store.init();
@@ -240,6 +241,9 @@ function boot() {
     // 剛才是在畫面底部答完最後一題的，成績要從最上方開始看。
     // 一樣是全部畫完才捲，避免 scroll anchoring 把位置拉回去。
     scrollTop();
+    // 成績畫面是按下〔完成練習〕之後才出現的，和最後一題的判定音隔了
+    // 一次點擊，不會疊在一起
+    if (perfect) sfx.perfect(); else sfx.finish();
   }
 
   const stat = (v, l) => el('div', { class: 'done-stat' }, el('b', { text: v }), el('span', { text: l }));

@@ -21,7 +21,8 @@ export const KEYS = {
   authHint: NS + 'authHint',   // '1' = 上次是登入狀態，用來避免登入狀態閃爍
   uid:      NS + 'uid',
   seen:     NS + 'seen',       // 一次性提示是否已讀（例如跳關提醒）
-  srs:      NS + 'srs'         // { [itemKey]: { s, due, n, w } } 間隔重複狀態
+  srs:      NS + 'srs',        // { [itemKey]: { s, due, n, w } } 間隔重複狀態
+  sfx:      NS + 'sfx'         // '0' = 關閉答題音效
 };
 
 /** 課綱版本：content/catalogs.js 有變動時 +1，方便日後判斷快取是否過期。 */

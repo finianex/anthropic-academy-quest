@@ -620,6 +620,20 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
   color: var(--ink-soft);
 }
 .quiz-quit:hover { color: var(--ink); background: var(--bg-sunk); }
+
+/* 音效開關。開啟時上色、關閉時灰掉並換成有斜槓的圖示——
+   狀態同時由顏色和外形表達，不讓資訊只靠顏色傳達。 */
+.quiz-sfx {
+  flex: 0 0 auto;
+  width: var(--tap); height: var(--tap);
+  display: grid; place-items: center;
+  border: 0; border-radius: 50%;
+  background: none; cursor: pointer;
+  color: var(--green-text);
+}
+.quiz-sfx[aria-pressed="false"] { color: var(--ink-faint); }
+.quiz-sfx:hover { background: var(--bg-sunk); }
+
 .quiz-progress { flex: 1 1 auto; height: 16px; }
 .quiz-progress > i { background: linear-gradient(180deg, #7BE334, var(--green)); }
 

@@ -12,6 +12,7 @@
 
 import { el, fill, clear, reducedMotion, scrollTop } from './dom.js';
 import { ICON } from './ui.js';
+import * as sfx from './sfx.js';
 
 const shuffle = (a) => { const b = a.slice(); for (let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
 
@@ -48,8 +49,24 @@ export function mountQuiz(host, opts) {
       }, ICON.close({ width: 22, height: 22 }))
     : el('span');
 
+  /* 音效開關放在練習畫面上，不是設定頁。這個站很可能在辦公室或圖書館
+     被打開，突然出聲是會讓人尷尬的事——關掉的路徑必須一眼看得到。 */
+  const sfxBtn = el('button', {
+    class: 'quiz-sfx', type: 'button',
+    'aria-pressed': String(sfx.isOn()),
+    on: { click: () => { sfx.setOn(!sfx.isOn()); paintSfx(); } }
+  });
+  function paintSfx() {
+    const on = sfx.isOn();
+    sfxBtn.setAttribute('aria-pressed', String(on));
+    sfxBtn.setAttribute('aria-label', on ? '答題音效：開啟中，點一下關閉' : '答題音效：已關閉，點一下開啟');
+    sfxBtn.title = on ? '答題音效開啟中' : '答題音效已關閉';
+    fill(sfxBtn, on ? ICON.sound({ width: 20, height: 20 }) : ICON.mute({ width: 20, height: 20 }));
+  }
+  paintSfx();
+
   const quizEl = el('div', { class: 'quiz' },
-      el('div', { class: 'quiz-top' }, quitEl, bar),
+      el('div', { class: 'quiz-top' }, quitEl, bar, sfxBtn),
       el('div', { class: 'quiz-body wrap wrap--narrow' }, promptEl, passageEl, answerEl)
   );
   host.replaceChildren(quizEl, feedback);
@@ -266,6 +283,10 @@ export function mountQuiz(host, opts) {
     const res = session.answer(correct);
     opts.onAnswer?.(res, item);
     setProgress();
+
+    /* 聲音先出，畫面後到。判定的瞬間發聲，人耳的反應比讀字快，
+       所以聽到的當下眼睛才剛開始看回饋條。 */
+    if (correct) sfx.correct(); else sfx.wrong();
 
     feedback.dataset.state = correct ? 'correct' : 'wrong';
     clear(verdict);

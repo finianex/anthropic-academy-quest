@@ -16,6 +16,7 @@ import { createSession } from './session.js';
 import { mountQuiz } from './quiz-ui.js';
 import { allCourses, noteOf, lessonLookup } from './catalog.js';
 import { dueKeys, nextDueAt, untilLabel, strengthLabel } from './srs.js';
+import * as sfx from './sfx.js';
 import { REVIEW_MAX, XP } from './config.js';
 
 store.init();
@@ -143,7 +144,6 @@ function finish(session) {
   const acc = Math.round(session.accuracy() * 100);
   const left = Math.max(0, total - session.total);
 
-  scrollTop();
   renderHead();
   fill($('#flow'),
     el('div', { class: 'wrap wrap--narrow' },
@@ -169,6 +169,9 @@ function finish(session) {
     )
   );
   clear($('#after'));
+  // 全部畫完才捲，否則 scroll anchoring 會把位置補償回去
+  scrollTop();
+  if (right === session.total) sfx.perfect(); else sfx.finish();
 }
 
 const stat = (v, l) => el('div', { class: 'done-stat' }, el('b', { text: v }), el('span', { text: l }));
