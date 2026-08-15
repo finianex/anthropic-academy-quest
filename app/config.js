@@ -106,17 +106,26 @@ export const LAYOUT_BREAKPOINTS = [
 export const BAND_H = 62;
 export const SEG_GAP = 26;
 
-/** Firebase —— Phase 2。留 null 時全站以 localStorage 模式運作。 */
-export const FIREBASE = null;
-/*  填法：
+/** Firebase —— Phase 2。設成 null 可讓全站退回純 localStorage 模式。
+ *
+ *  這些值可以放心 commit：apiKey 是識別碼不是密鑰，本來就設計成隨前端
+ *  原始碼發布。保護資料的是 Firestore 規則、授權網域，以及這把瀏覽器
+ *  金鑰上的 HTTP referrer 限制——不是把它藏起來。
+ *
+ *  刻意沒有收 measurementId：Console 開了 Analytics，但本站不載入
+ *  firebase-analytics，所以不會有任何量測請求或 cookie。少了這個鍵，
+ *  就算日後有人手滑呼叫 getAnalytics() 也初始化不起來。 */
 export const FIREBASE = {
-  apiKey: '…', authDomain: '….firebaseapp.com', projectId: '…',
-  storageBucket: '…', messagingSenderId: '…', appId: '…'
+  apiKey: 'AIzaSyCT6fMbJWgOCSnKgmr79P7ER0lLVdmuFkE',
+  authDomain: 'claude-elearning.firebaseapp.com',
+  projectId: 'claude-elearning',
+  storageBucket: 'claude-elearning.firebasestorage.app',
+  messagingSenderId: '216483603062',
+  appId: '1:216483603062:web:a22c68da18de0528967557'
 };
-*/
 
 /** 三個 Firebase 模組必須同版本，否則會 duplicate-app。 */
-export const FIREBASE_VERSION = '11.6.0';
+export const FIREBASE_VERSION = '12.17.1';
 
 /** 具名 app 實例：避免和同網域上其他 Firebase 專案衝突。 */
 export const FIREBASE_APP_NAME = 'aaq';
