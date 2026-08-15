@@ -58,6 +58,12 @@ function build(node, props, kids, isSvg) {
         }
       } else if (k === 'on') {
         for (const [ev, fn] of Object.entries(v)) node.addEventListener(ev, fn);
+      } else if (typeof v === 'function') {
+        /* 攔住 onclick: fn 這種寫法。它會掉進下面的 setAttribute 分支，把函式
+           原始碼當字串塞進屬性——那是一個函式「宣告」，執行它只會宣告、不會
+           呼叫，所以按鈕變成完全沒反應而且不報錯。這個錯誤太安靜了，寧可在
+           這裡大聲失敗。 */
+        throw new TypeError(`el(${node.tagName.toLowerCase()}): 屬性 "${k}" 收到函式。事件請用 on: { ${k.replace(/^on/, '')}: fn }`);
       } else if (v === true) {
         node.setAttribute(k, '');
       } else {

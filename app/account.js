@@ -131,23 +131,23 @@ export function mountAccount(slot) {
       if (s.error) {
         rows.push(el('button', {
           class: 'acc-item', type: 'button', role: 'menuitem', text: '立即重試同步',
-          onclick: () => { sync.flush(); closeMenu(); }
+          on: { click: () => { sync.flush(); closeMenu(); } }
         }));
       }
       rows.push(el('button', {
         class: 'acc-item', type: 'button', role: 'menuitem',
-        onclick: () => doSignOut(false)
+        on: { click: () => doSignOut(false) }
       }, I.out(16), el('span', { text: '登出' })));
       rows.push(el('button', {
         class: 'acc-item acc-item--danger', type: 'button', role: 'menuitem',
-        onclick: () => doSignOut(true)
+        on: { click: () => doSignOut(true) }
       }, el('span', { text: '登出並清除這台裝置的資料' })));
       rows.push(el('p', { class: 'acc-note', text: '一般登出會保留這台裝置上的進度，方便你以匿名身分繼續讀。' }));
     } else {
       rows.push(el('p', { class: 'acc-note', text: '用 Google 登入之後，進度與筆記會跟著帳號走，換裝置也看得到。未登入時一切照常運作，只是資料留在這台裝置。' }));
       rows.push(el('button', {
         class: 'acc-item acc-item--go', type: 'button', role: 'menuitem', text: '用 Google 登入',
-        onclick: doSignIn
+        on: { click: doSignIn }
       }));
     }
 
