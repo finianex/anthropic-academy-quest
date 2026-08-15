@@ -182,6 +182,121 @@ a.card:active, button.card:active { transform: translateY(2px); box-shadow: 0 1p
   .hud-me-xp { display: none; }
 }
 
+/* ═══ 帳號（HUD 最右）═══════════════════════════════════════
+   三種狀態（pending／out／in）刻意共用同一組尺寸：min-width 讓
+   「登入」與使用者名稱佔一樣寬，狀態切換時 HUD 不會抖動。 */
+.acc { position: relative; flex: 0 0 auto; }
+
+.acc-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  min-width: 116px;
+  padding: 5px 12px 5px 6px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r-pill);
+  background: var(--bg);
+  box-shadow: 0 var(--edge-thin) 0 var(--line-edge);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
+}
+.acc-btn:hover  { transform: translateY(-2px); box-shadow: 0 5px 0 var(--line-edge); }
+.acc-btn:active { transform: translateY(2px);  box-shadow: 0 1px 0 var(--line-edge); }
+
+.acc-face {
+  width: 26px; height: 26px;
+  flex: 0 0 auto;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--bg-sunk);
+  color: var(--ink-soft);
+}
+.acc-face img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.acc-name {
+  flex: 1 1 auto;
+  max-width: 118px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: left;
+}
+.acc[data-state="pending"] .acc-name { color: var(--ink-soft); }
+
+/* 同步狀態小點。顏色只是輔助——真正的說明在 title 與選單裡的文字，
+   不讓任何資訊只靠顏色傳達。 */
+.acc-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--green); }
+.acc-dot[data-s="wait"]  { background: var(--blue); }
+.acc-dot[data-s="merge"] { background: var(--gold); }
+.acc-dot[data-s="err"]   { background: var(--coral); }
+
+.acc-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  z-index: var(--z-sheet);
+  width: min(300px, calc(100vw - 32px));
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  border: var(--bw) solid var(--line);
+  border-radius: var(--r);
+  background: var(--bg);
+  box-shadow: 0 var(--edge) 0 var(--line-edge), 0 14px 30px rgba(0, 0, 0, .10);
+}
+.acc-menu[hidden] { display: none; }
+
+.acc-who { padding: 6px 10px 10px; border-bottom: var(--bw) solid var(--line); margin-bottom: 6px; }
+.acc-who b     { display: block; font-size: 14px; font-weight: 900; }
+.acc-who small { display: block; margin-top: 2px; color: var(--ink-soft); font-size: 11.5px; word-break: break-all; }
+
+.acc-sync {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--green-soft);
+  color: var(--ink);
+  font-size: 12.5px; font-weight: 800;
+}
+.acc-sync[data-s="err"] { background: var(--coral-soft); }
+
+.acc-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--ink);
+  font: inherit; font-size: 13.5px; font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+.acc-item:hover { background: var(--bg-sunk); }
+.acc-item--danger { color: var(--coral-text); }
+.acc-item--go {
+  justify-content: center;
+  margin-top: 4px;
+  background: var(--green);
+  color: var(--on-tint);
+  box-shadow: 0 var(--edge-thin) 0 var(--green-edge);
+}
+.acc-item--go:hover { background: var(--green); filter: brightness(1.04); }
+
+.acc-note { padding: 8px 10px 2px; color: var(--ink-soft); font-size: 11.5px; line-height: 1.6; }
+
+@media (max-width: 760px) {
+  .acc-btn  { min-width: 0; padding: 5px 8px 5px 6px; }
+  .acc-name { display: none; }
+}
+
 /* ═══ XP 進度條 ══════════════════════════════════════════════ */
 .xpbar {
   position: relative;

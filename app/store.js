@@ -12,7 +12,7 @@ import { derive, diff } from './gamify.js';
 import { lessonLookup } from './catalog.js';
 import { grade } from './srs.js';
 
-const DEFAULT_AVATAR = {
+export const DEFAULT_AVATAR = {
   body: 'cat',
   tint: 'green',
   hat: null,
@@ -207,6 +207,31 @@ export const hasSeen = (key) => !!state.seen[key];
 export function markSeen(key) {
   if (state.seen[key]) return [];
   return commit([KEYS.seen], () => { state.seen[key] = Date.now(); });
+}
+
+/**
+ * 用一份新狀態整個取代目前狀態，並寫回 localStorage。
+ * 只有登入合併會用到——合併是唯一一個「整份狀態被重算」的場景，
+ * 走 commit() 的逐鍵寫入反而會漏掉沒動到的鍵。
+ */
+export function replaceAll(next) {
+  state.progress = next.progress || {};
+  state.notes    = next.notes || {};
+  state.srs      = next.srs || {};
+  state.seen     = next.seen || {};
+  state.current  = next.current || null;
+  state.game     = { ...next.game, avatar: { ...DEFAULT_AVATAR, ...(next.game?.avatar || {}) } };
+
+  local.write(KEYS.progress, state.progress);
+  local.write(KEYS.notes, state.notes);
+  local.write(KEYS.srs, state.srs);
+  local.write(KEYS.seen, state.seen);
+  local.write(KEYS.current, state.current);
+  local.write(KEYS.game, state.game);
+
+  view = derive(state);
+  notify();
+  return view;
 }
 
 /* ── 重設（測試與「清除此裝置資料」用）─────────────────────── */

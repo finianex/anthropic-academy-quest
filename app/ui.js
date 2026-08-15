@@ -92,9 +92,18 @@ export function mountHud(host, opts = {}) {
       el('a', { class: 'hud-link', href: 'index.html', text: '世界地圖', 'aria-current': opts.active === 'map' ? 'page' : null }),
       el('a', { class: 'hud-link', href: 'review.html', text: '複習', 'aria-current': opts.active === 'review' ? 'page' : null }),
       el('a', { class: 'hud-link', href: 'me.html', text: '我的角色', 'aria-current': opts.active === 'me' ? 'page' : null }),
-      me
+      me,
+      el('span', { class: 'hud-acc', id: 'hud-acc' })
     )
   );
+
+  /* 帳號區塊用動態 import 掛上：ui 與 account 互相引用（account 需要
+     showEvents），靜態 import 會形成循環。動態載入把時序推到執行期，
+     順帶讓沒有設定 Firebase 的站台完全不必解析這個模組。 */
+  const accSlot = host.querySelector('#hud-acc');
+  import('./account.js')
+    .then((m) => m.mountAccount(accSlot))
+    .catch((e) => { console.warn('[aaq] 帳號區塊載入失敗：', e); accSlot.remove(); });
 
   function update(view) {
     const a = store.avatar();
@@ -159,15 +168,26 @@ export function showEvents(events) {
 
 /* ═══ 頁尾 ═══════════════════════════════════════════════════ */
 export function mountFoot(host) {
+  // 這句話是對使用者的事實陳述，登入前後不一樣，不能寫死
+  const where = el('span', { text: '進度目前存在這台裝置的瀏覽器裡。' });
+
   host.replaceChildren(
     el('div', { class: 'wrap' },
       el('p', { text: '非官方繁體中文學習站。課程名稱、商標、影片及官方教材權利歸原權利人所有。' }),
       el('p', { class: 'row', style: { 'margin-top': '8px', gap: '14px' } },
         el('a', { class: 'crumb', href: 'https://anthropic.skilljar.com/', target: '_blank', rel: 'noopener noreferrer', text: '前往官方網站 ↗' }),
-        el('span', { text: '進度目前存在這台裝置的瀏覽器裡。' })
+        where
       )
     )
   );
+
+  import('./auth.js').then((auth) => {
+    auth.onAuth((user) => {
+      where.textContent = user
+        ? '進度會同步到你的 Google 帳號，換裝置也看得到。'
+        : '進度目前存在這台裝置的瀏覽器裡。';
+    });
+  }).catch(() => {});
 }
 
 /* ═══ 儲存空間警告 ═══════════════════════════════════════════ */
