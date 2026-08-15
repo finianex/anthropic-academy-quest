@@ -297,6 +297,20 @@ a.card:active, button.card:active { transform: translateY(2px); box-shadow: 0 1p
   .acc-name { display: none; }
 }
 
+/* 360px 的手機上，品牌(107) + 我的角色(145) + 帳號(43) + 間距 剛好塞滿
+   328px 的可用寬度。字體只要稍寬一點（例如三星機的預設中文字型）就會
+   把「學習地圖」和「Lv.1 見習讀者」從中間折成兩行。
+
+   等級是會變動的遊戲進度、品牌文字是靜態的，所以縮的是後者——綠色地圖
+   圖示本身就是回首頁的按鈕，文字拿掉不影響操作。
+   nowrap 是保險：真的擠到了寧可裁切，也不要在中文字中間硬折。 */
+.hud-brand b, .hud-brand small, .hud-me-txt b { white-space: nowrap; }
+
+@media (max-width: 430px) {
+  .hud-brand b { display: none; }
+  .hud-in { gap: 8px; }
+}
+
 /* ═══ XP 進度條 ══════════════════════════════════════════════ */
 .xpbar {
   position: relative;
@@ -430,7 +444,13 @@ footer.foot {
 }
 
 /* ═══ 課堂卡片流 ═════════════════════════════════════════════ */
-.flow { display: grid; gap: 18px; }
+/* overflow-anchor:none 是必要的，不是微調。
+   翻卡與換題都是把 .flow 的內容整批換掉，換完會呼叫 scrollTop() 跳回頂部。
+   瀏覽器的 scroll anchoring 會在內容變動後自動補償捲動位置以維持視覺穩定，
+   於是在我們跳到 0 之後的下一個 frame 又把它推回 15～100px——看起來就像
+   「捲不乾淨」。這個屬性把 .flow 底下的節點排除在錨點候選之外。
+   本站沒有延遲載入的圖片或廣告，關掉錨定沒有副作用。 */
+.flow { display: grid; gap: 18px; overflow-anchor: none; }
 
 /* 分段進度：一格一張卡 */
 .steps { display: flex; gap: 5px; }
@@ -791,6 +811,27 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
   white-space: nowrap;
 }
 .teach-skip:hover { color: var(--green-text); }
+
+/* 窄螢幕：上一張／下一張／跳過教學 三個並排要 355px，360px 的手機放不下。
+   內層 .row 會先換行，把「跳過教學」和「下一張」擠成上下兩行，而外層的
+   align-items:center 讓「上一張」對齊在中間——三顆按鈕看起來就是錯位的。
+
+   改成兩列網格：跳過教學獨佔第一列置中，上一張／下一張各半在第二列。
+   .row 用 display:contents 讓它的兩個子元素直接變成網格項目，不必動 DOM。
+   （.row 是純排版用的 div，沒有語意角色，contents 不會影響無障礙樹。）*/
+@media (max-width: 480px) {
+  .teach-nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    align-items: stretch;
+  }
+  .teach-nav > .row { display: contents; }
+  .teach-nav .teach-skip { grid-row: 1; grid-column: 1 / -1; justify-self: center; }
+  .teach-nav > .btn--ghost { grid-row: 2; grid-column: 1; }
+  .teach-nav .btn:not(.btn--ghost) { grid-row: 2; grid-column: 2; }
+  .teach-nav .btn { min-width: 0; width: 100%; }
+}
 .teach-list { display: grid; gap: 12px; }
 .teach-item { padding: 14px 16px; border: var(--bw) solid var(--line); border-radius: var(--r); background: var(--bg-board); }
 .teach-item b { display: block; font-size: 15px; margin-bottom: 4px; }

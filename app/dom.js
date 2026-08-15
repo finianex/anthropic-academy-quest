@@ -132,13 +132,26 @@ export const reducedMotion = () =>
  * 刻意用瞬間跳（behavior:'auto'）而不是平滑捲動：內容已經換成新的了，
  * 沒有空間連續性可以保留，平滑捲動只會讓人看著新內容緩慢移動，反而更暈。
  *
- * 注意 styles/base.css 有 `html { scroll-behavior: smooth }`，所以這裡一定要
- * 明確指定 behavior，否則會被那條規則接管。
+ * 必須用 'instant'，不能用 'auto'。
+ *
+ * base.css 有 `html { scroll-behavior: smooth }`，而 behavior:'auto' 的意思
+ * 不是「瞬間」，是「照 CSS 的 scroll-behavior 決定」——等於什麼都沒指定，
+ * 於是照樣平滑捲動。只有 'instant' 會強制不做動畫。同一頁實測：
+ *
+ *   window.scrollTo(0, 0)             226 → 226  ✗
+ *   scrollTo({ behavior:'auto' })     290 → 290  ✗
+ *   scrollTo({ behavior:'instant' })  300 →   0  ✓
+ *   documentElement.scrollTop = 0     169 → 169  ✗
  */
 export function scrollTop() {
   try {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   } catch {
-    window.scrollTo(0, 0);      // 舊瀏覽器不支援物件參數
+    // 不認識 instant 的舊瀏覽器：直接改 inline 樣式壓過 base.css 再跳
+    const root = document.documentElement;
+    const prev = root.style.scrollBehavior;
+    root.style.scrollBehavior = 'auto';
+    window.scrollTo(0, 0);
+    root.style.scrollBehavior = prev;
   }
 }

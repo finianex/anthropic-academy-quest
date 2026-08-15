@@ -127,8 +127,12 @@ function boot() {
     }
 
     /* 翻卡＝內容整批換掉，所以每次都回到最上方。
-       長的概念卡會讓人捲到下面，不捲回去的話下一張的標題會在畫面上方看不到。 */
-    const goCard = (n) => { ti = n; scrollTop(); renderTeach(); };
+       長的概念卡會讓人捲到下面，不捲回去的話下一張的標題會在畫面上方看不到。
+
+       順序是「先換內容、再捲」，不能顛倒：瀏覽器的 scroll anchoring 會在
+       內容變動後自動把捲動位置拉回去維持視覺穩定。先捲再換的話，捲到 0
+       之後 anchoring 又把它拉回 59～104px，看起來就像沒捲乾淨。 */
+    const goCard = (n) => { ti = n; renderTeach(); scrollTop(); };
 
     const isLast = ti === teach.length - 1;
     const nextBtn = el('button', {
@@ -181,7 +185,6 @@ function boot() {
     const session = createSession(items);
     clear(head);
     clear(after);
-    scrollTop();
 
     mountQuiz(flow, {
       session,
@@ -189,6 +192,7 @@ function boot() {
       quitLabel: `離開練習，回到${isl ? isl.zh : '地圖'}`,
       onFinish: (s) => finish(s)
     });
+    scrollTop();     // 先掛好再捲，否則 scroll anchoring 會把位置拉回去
   }
 
   function finish(session) {
@@ -200,8 +204,6 @@ function boot() {
     showEvents(events);
 
     const acc = Math.round(session.accuracy() * 100);
-    // 剛才是在畫面底部答完最後一題的，成績要從最上方開始看
-    scrollTop();
     renderHead();
 
     fill(flow,
@@ -225,7 +227,7 @@ function boot() {
                 el('span', { text: '下一課' }), ICON.arrowR({ width: 20, height: 20 }))
             : el('a', { class: 'btn btn--lg', href: backHref }, el('span', { text: `回到${isl ? isl.zh : '地圖'}` })),
           el('button', { class: 'btn btn--ghost', type: 'button',
-            on: { click: () => { ti = 0; scrollTop(); renderTeach(); } } },
+            on: { click: () => { ti = 0; renderTeach(); scrollTop(); } } },
             el('span', { text: '再看一次教學' })),
           pos.next
             ? el('a', { class: 'crumb', href: backHref },
@@ -235,6 +237,9 @@ function boot() {
       )
     );
     fill(after, noteEditor(lessonId), officialRow());
+    // 剛才是在畫面底部答完最後一題的，成績要從最上方開始看。
+    // 一樣是全部畫完才捲，避免 scroll anchoring 把位置拉回去。
+    scrollTop();
   }
 
   const stat = (v, l) => el('div', { class: 'done-stat' }, el('b', { text: v }), el('span', { text: l }));
