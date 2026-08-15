@@ -1,0 +1,71 @@
+rules_version = '2';
+
+/*
+ * Firestore 安全規則 —— claude-elearning
+ *
+ * 三個一定要知道的前提：
+ *
+ * 1. 絕對不要用 Console 預設的 test mode 樣板
+ *      match /{document=**} { allow read, write: if request.auth != null; }
+ *    那會讓任何登入的 Google 使用者讀到所有人的私人筆記，而它是預設選項，
+ *    是這整份設定裡最可能出錯的地方。
+ *
+ * 2. 規則是 OR 組合而且不能撤銷。在巢狀裡寫 `allow read, write: if false`
+ *    看起來很安全，實際上完全沒有作用——外層給過的權限收不回來。
+ *
+ * 3. /users/{uid} 上刻意不給 list。集合查詢的規則必須靜態可滿足，uid 是
+ *    通配時無法滿足，所以「列出所有使用者」正確地成為不可能。
+ *
+ * 誠實的限制：客戶端的遊戲化狀態本質上可以偽造。規則能限制 XP 的範圍與
+ * 單調性，但在沒有伺服器程式碼的前提下無法驗證「真的賺到」。所以 XP 與
+ * 等級一律視為裝飾，永遠不用它們鎖任何內容。
+ */
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /users/{uid} {
+      function mine() { return request.auth != null && request.auth.uid == uid; }
+      function d()    { return request.resource.data; }
+      function prev() { return resource == null ? null : resource.data; }
+
+      allow get:    if mine();
+      allow delete: if mine();
+
+      allow create, update: if mine()
+        && d().schema is int && d().schema <= 2
+        && (!('courses' in d()) || d().courses.keys().size() <= 40)
+        // 不能把別人的 email 寫進自己的 profile
+        && (!('profile' in d()) || !('email' in d().profile)
+             || d().profile.email == request.auth.token.email)
+        && (!('game' in d()) || (
+              (!('xp' in d().game) || (d().game.xp is int && d().game.xp >= 0 && d().game.xp <= 1000000))
+           && (!('achievements' in d().game) || d().game.achievements.keys().size() <= 300)
+           // serverTimestamp() 在規則評估時就解析成 request.time，
+           // 這是唯一能防偽造時間戳的手段
+           && (!('updatedAt' in d().game) || d().game.updatedAt == request.time)
+           // XP 單調遞增：連擁有者本人都不能調降
+           && (prev() == null || !('game' in prev()) || !('xp' in prev().game)
+                || !('xp' in d().game) || d().game.xp >= prev().game.xp)));
+
+      match /progress/{courseSlug} {
+        allow read: if mine();
+        allow write: if mine()
+          && request.resource.data.courseSlug == courseSlug
+          // 最大的一門課（vertex）是 93 堂，200 留了足夠餘裕
+          && request.resource.data.lessons.keys().size() <= 200
+          && request.resource.data.lastAt == request.time;
+      }
+
+      match /notes/{lessonId} {
+        allow read: if mine();
+        allow write: if mine()
+          && request.resource.data.lessonId == lessonId
+          && request.resource.data.body is string
+          // 與 app/config.js 的 NOTE_MAX 一致，兩邊都把關
+          && request.resource.data.body.size() <= 20000
+          && request.resource.data.updatedAt == request.time;
+      }
+    }
+  }
+}
