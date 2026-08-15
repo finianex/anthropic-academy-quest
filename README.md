@@ -204,7 +204,11 @@ serve.ps1         本機靜態伺服器
 
 ## 部署
 
-GitHub Pages：Settings → Pages → Source 選 `Deploy from a branch`、Branch 選 `main` / `/ (root)`。根目錄的 `.nojekyll` 用來跳過 Jekyll 處理。
+正式站是 **Firebase Hosting**（專案 `claude-elearning`），推到 `main` 就由 `.github/workflows/firebase-hosting.yml` 自動部署，不需要本機裝 firebase CLI。設定散在三個檔案：`firebase.json`（站台內容與快取標頭）、`.firebaserc`（專案別名）、workflow（觸發與憑證）。憑證放在 GitHub secret `FIREBASE_SERVICE_ACCOUNT`，是一組只有 Firebase Hosting Admin + Firebase Viewer 兩個角色的 service account JSON。
+
+**為什麼不是 GitHub Pages。** Pages 跑得起來（站台零絕對路徑，`/` 和 `/子路徑/` 都可以），但 `signInWithRedirect` 在 Pages 上對限制第三方儲存的瀏覽器（Safari 16.1+、Firefox ETP strict、Chrome 限制第三方 cookie）是壞的——流程需要從 `<project>.firebaseapp.com` 的第三方情境讀狀態，官方修法是把 `/__/auth/**` 反向代理到自己的網域，而 Pages 做不到。Firebase Hosting 天生就提供那條路徑，而且 `web.app` / `firebaseapp.com` 預設就在 Auth 的 authorized domains 裡。根目錄的 `.nojekyll` 是 Pages 時期留下的，對 Firebase 無作用但也無害。
+
+**快取刻意設成 `no-cache`。** 這個專案沒有建置流程，檔名固定（`content/notes/claude-101.js` 永遠是這個名字），所以不能用長快取——課文改了卻讓使用者卡在舊版是這裡最糟的失敗模式。`no-cache` 仍然走 ETag 重新驗證，沒改就回 304，成本很低。圖檔類才給 1 天。
 
 ## 隱私
 
