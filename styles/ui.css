@@ -811,6 +811,46 @@ a.pg:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line-edge); 
 .done-stat b { font-family: var(--font-num); font-size: 21px; font-weight: 900; }
 .done-stat span { color: var(--ink-soft); font-size: 12px; font-weight: 800; }
 
+/* ═══ 接續上次 ══════════════════════════════════════════════
+   用藍色而不是綠色：綠色在這個站一路代表「完成」，
+   而「還沒做完」剛好是相反的意思。 */
+.resume-card { display: grid; gap: 16px; justify-items: center; text-align: center; padding: 34px 22px; }
+.resume-card .big { font-family: var(--font-num); font-size: 42px; font-weight: 900; color: var(--blue-text); }
+
+/* 教學卡上方那一條「從第 N 張繼續」*/
+.resume-strip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 0;
+  padding: 11px 14px;
+  border: var(--bw) solid var(--blue-soft);
+  border-radius: var(--r);
+  background: var(--blue-soft);
+  color: #14435C;
+  font-size: 13.5px;
+  font-weight: 900;
+}
+.resume-strip > svg { flex: 0 0 auto; }
+.resume-restart {
+  margin-left: auto;
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0; border-radius: var(--r-sm);
+  background: rgba(255, 255, 255, .7);
+  color: var(--blue-text);
+  font: inherit; font-size: 12.5px; font-weight: 900;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.resume-restart:hover { background: #fff; }
+
+@media (max-width: 480px) {
+  .resume-strip { flex-wrap: wrap; }
+  .resume-restart { margin-left: 0; width: 100%; }
+}
+
 /* ═══ 教學卡（練習前的短說明）════════════════════════════════ */
 /* 教學卡導覽：左＝退，右＝進，位置與方向永遠對應。
    「跳過教學」不放在左邊——它是往前跳，跟左邊代表的方向相反。 */

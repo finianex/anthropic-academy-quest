@@ -8,7 +8,9 @@ import * as local from './local.js';
 import { mountHud, mountFoot, ring, fmt, ICON, warnQuota } from './ui.js';
 import { mountWorld } from './map-world.js';
 import { resumePoint } from './progress.js';
-import { allIslands, index, allBadges, allCourses } from './catalog.js';
+// 命名成 liveState：這個檔案已經有一個 resume 常數指向 DOM 節點
+import * as liveState from './resume.js';
+import { allIslands, index, allBadges, allCourses, lessonLookup } from './catalog.js';
 import { dueKeys, nextDueAt, untilLabel, lessonIdOf } from './srs.js';
 import { REVIEW_MAX } from './config.js';
 
@@ -72,6 +74,32 @@ function renderReview() {
 const resume = $('#resume');
 
 function renderResume(view) {
+  /* 沒做完的那一場優先。它比「上次讀到哪一堂」更具體，也更急——
+     題目已經挑好、答了一半，放著不管過幾天就會過期。 */
+  const half = liveState.liveSummary();
+  if (half && (half.kind === 'review' || (half.courseSlug && half.lessonId))) {
+    const isReview = half.kind === 'review';
+    const hit = isReview ? null : lessonLookup(half.lessonId);
+    resume.href = isReview
+      ? 'review.html'
+      : `lesson.html?course=${encodeURIComponent(half.courseSlug)}&lesson=${encodeURIComponent(half.lessonId)}`;
+    fill(resume,
+      el('div', { class: 'resume-in' },
+        el('div', null,
+          el('span', { class: 'pill pill--blue', text: isReview ? '複習還沒做完' : '練習還沒做完' }),
+          el('h3', { text: isReview ? '複習' : (hit?.lesson?.zh || '接著做'), style: { 'margin-top': '8px' } }),
+          el('p', { class: 'resume-sub',
+            text: `做到 ${half.cleared}／${half.total} 題${hit?.course?.zhTitle ? ' · ' + hit.course.zhTitle : ''}` })
+        ),
+        el('span', { class: 'resume-go' }, ICON.arrowR({ width: 22, height: 22 }))
+      )
+    );
+    resume.setAttribute('aria-label',
+      `接著做${isReview ? '複習' : '練習'}：已完成 ${half.cleared} 題，共 ${half.total} 題`);
+    resume.hidden = false;
+    return;
+  }
+
   const started = view.lessonsDone > 0 || !!store.current();
   if (!started) { resume.hidden = true; return; }
 

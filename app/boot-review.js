@@ -17,6 +17,7 @@ import { mountQuiz } from './quiz-ui.js';
 import { allCourses, noteOf, lessonLookup } from './catalog.js';
 import { dueKeys, nextDueAt, untilLabel, strengthLabel } from './srs.js';
 import * as sfx from './sfx.js';
+import * as resume from './resume.js';
 import { REVIEW_MAX, XP } from './config.js';
 
 store.init();
@@ -45,7 +46,12 @@ const { keys, total } = dueKeys(srs, keyOk, Date.now(), REVIEW_MAX);
 
 renderHead();
 
-if (!keys.length) {
+/* 沒做完的複習優先於「今天有幾題到期」：那一場的題目已經挑好、
+   也答了一部分，重新挑題會讓剛才的作答白費。 */
+const liveReview = resume.getLive({ kind: 'review' });
+if (liveReview) {
+  renderResume(liveReview);
+} else if (!keys.length) {
   renderEmpty();
 } else {
   start();
@@ -115,22 +121,60 @@ function renderStrengthTable() {
   );
 }
 
-function start() {
-  const items = keys.map((k) => buildFromKey(k)).filter(Boolean);
-  if (!items.length) { renderEmpty(); return; }
-
-  const session = createSession(items);
+/** @param {object} [saved] resume.getLive() 的結果，有的話就接續那一場 */
+function start(saved) {
+  let session;
+  // 同 boot-lesson：只認真正的快照，擋掉誤傳事件物件的情況
+  if (saved?.snapshot?.queue?.length) {
+    session = createSession(null, saved.snapshot);
+  } else {
+    const items = keys.map((k) => buildFromKey(k)).filter(Boolean);
+    if (!items.length) { renderEmpty(); return; }
+    session = createSession(items);
+    resume.clearLive();
+  }
   clear($('#head'));
 
   mountQuiz($('#flow'), {
     session,
     quitHref: 'index.html',
     quitLabel: '離開複習，回到世界地圖',
+    onAnswer: () => resume.saveLive('review', session),
     onFinish: finish
   });
 }
 
+/** 有沒做完的複習時先問一句，理由同課堂頁。 */
+function renderResume(saved) {
+  const s = saved.snapshot;
+  const ms = Date.now() - saved.at;
+  const whenZh = ms >= 86400000 ? `${Math.floor(ms / 86400000)} 天前`
+    : ms >= 3600000 ? `${Math.floor(ms / 3600000)} 小時前` : '剛剛';
+
+  clear($('#head'));
+  fill($('#flow'),
+    el('div', { class: 'wrap wrap--narrow' },
+      el('div', { class: 'card card--pad resume-card' },
+        el('div', { class: 'big', text: `${s.cleared}／${s.total}` }),
+        el('h2', { text: '有一場複習還沒做完' }),
+        el('p', { style: { color: 'var(--ink-soft)' },
+          text: `${whenZh}做到這裡。接著做的話，題目和作答紀錄都跟上次一樣。` }),
+        el('div', { class: 'row', style: { 'justify-content': 'center', 'margin-top': '6px' } },
+          el('button', { class: 'btn btn--lg btn--purple', type: 'button',
+            on: { click: () => start(saved) } },
+            ICON.brain({ width: 20, height: 20 }), el('span', { text: '接著做' })),
+          el('button', { class: 'btn btn--ghost', type: 'button',
+            on: { click: () => { resume.clearLive(); start(); } } },
+            el('span', { text: '重新挑題開始' }))
+        )
+      )
+    )
+  );
+  clear($('#after'));
+}
+
 function finish(session) {
+  resume.clearLive();
   const results = session.results();
   store.gradeItems(results);
 

@@ -22,8 +22,16 @@ export const KEYS = {
   uid:      NS + 'uid',
   seen:     NS + 'seen',       // 一次性提示是否已讀（例如跳關提醒）
   srs:      NS + 'srs',        // { [itemKey]: { s, due, n, w } } 間隔重複狀態
-  sfx:      NS + 'sfx'         // '0' = 關閉答題音效
+  sfx:      NS + 'sfx',        // '0' = 關閉答題音效
+  live:     NS + 'live',       // 沒做完的那一場練習（只留一場）
+  spot:     NS + 'spot'        // { [lessonId]: 教學卡索引 } 讀到第幾張
 };
+
+/** 沒做完的練習保留幾天。超過就當作沒有——三週前的半場練習，
+ *  接著做的價值遠低於重新開始。 */
+export const LIVE_TTL_DAYS = 7;
+/** 記住「讀到第幾張」的課堂數上限，超過就淘汰最舊的。 */
+export const SPOT_MAX = 60;
 
 /** 課綱版本：content/catalogs.js 有變動時 +1，方便日後判斷快取是否過期。 */
 export const CATALOG_VERSION = 1;

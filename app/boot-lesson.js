@@ -24,6 +24,7 @@ import {
 } from './catalog.js';
 import { lessonXp } from './gamify.js';
 import * as sfx from './sfx.js';
+import * as resume from './resume.js';
 import { NOTE_MIN, NOTE_SAVE_DEBOUNCE, XP } from './config.js';
 
 store.init();
@@ -86,7 +87,9 @@ function boot() {
   }
 
   /* ══ 教學階段 ══════════════════════════════════════════ */
-  let ti = 0;
+  /* 從上次讀到的那張接續。索引可能因為課文改寫而超出範圍，所以要夾住。 */
+  let ti = Math.min(resume.getSpot(lessonId), teach.length - 1);
+  let showResumeNote = ti > 0;
 
   function renderTeach() {
     renderHead();
@@ -133,7 +136,7 @@ function boot() {
        順序是「先換內容、再捲」，不能顛倒：瀏覽器的 scroll anchoring 會在
        內容變動後自動把捲動位置拉回去維持視覺穩定。先捲再換的話，捲到 0
        之後 anchoring 又把它拉回 59～104px，看起來就像沒捲乾淨。 */
-    const goCard = (n) => { ti = n; renderTeach(); scrollTop(); };
+    const goCard = (n) => { ti = n; resume.setSpot(lessonId, n); renderTeach(); scrollTop(); };
 
     const isLast = ti === teach.length - 1;
     const nextBtn = el('button', {
@@ -151,8 +154,21 @@ function boot() {
       on: { click: () => { if (ti > 0) goCard(ti - 1); } }
     }, ICON.arrowL({ width: 18, height: 18 }), el('span', { text: '上一張' }));
 
+    /* 從中間接續時明講一次，並給一個回到開頭的出口。
+       接續是為了省事，不是要把人鎖在原地——沒有這行提示，
+       使用者會以為前面幾張不見了。只在第一次渲染時出現。 */
+    const resumeNote = (showResumeNote && ti > 0)
+      ? el('div', { class: 'resume-strip' },
+          ICON.pin({ width: 18, height: 18 }),
+          el('span', { text: `從上次讀到的第 ${ti + 1} 張繼續` }),
+          el('button', { class: 'resume-restart', type: 'button', text: '回到第一張',
+            on: { click: () => { showResumeNote = false; goCard(0); } } }))
+      : null;
+    showResumeNote = false;
+
     fill(flow,
       done ? el('div', { class: 'done-strip' }, ICON.check({ width: 20, height: 20 }), el('span', { text: '這堂已完成' })) : null,
+      resumeNote,
       steps,
       el('div', { class: 'flow-meta' },
         el('span', { class: 'kind', text: c.kindZh }),
@@ -163,7 +179,9 @@ function boot() {
         prevBtn,
         el('div', { class: 'row', style: { gap: '4px' } },
           !isLast
-            ? el('button', { class: 'teach-skip', type: 'button', on: { click: startPractice } },
+            /* 必須包一層：直接傳 startPractice 會把 MouseEvent 當成
+               「要接續的那一場」傳進去 */
+            ? el('button', { class: 'teach-skip', type: 'button', on: { click: () => startPractice() } },
                 el('span', { text: '跳過教學' }), ICON.arrowR({ width: 15, height: 15 }))
             : null,
           nextBtn
@@ -177,13 +195,28 @@ function boot() {
   }
 
   /* ══ 練習階段 ══════════════════════════════════════════ */
-  function startPractice() {
-    const items = buildExercises(note, lessonId);
-    if (!items.length) {
-      showEvents([{ type: 'plain', text: '這堂課的資料出不了題目。' }]);
-      return;
+  /**
+   * @param {object} [saved] resume.getLive() 的結果，有的話就接續那一場
+   */
+  function startPractice(saved) {
+    let session;
+    // 只認真正的快照。這個防線擋的是「不小心把事件物件傳進來」那種呼叫，
+    // 它會讓 saved 變成 truthy 卻沒有 snapshot。
+    if (saved?.snapshot?.queue?.length) {
+      session = createSession(null, saved.snapshot);
+    } else {
+      const items = buildExercises(note, lessonId);
+      if (!items.length) {
+        showEvents([{ type: 'plain', text: '這堂課的資料出不了題目。' }]);
+        return;
+      }
+      session = createSession(items);
+      // 開新的一場就丟掉舊的，避免兩場互相蓋來蓋去
+      resume.clearLive();
     }
-    const session = createSession(items);
+
+    // 已經進到練習，教學卡讀到哪就不重要了
+    resume.clearSpot(lessonId);
     clear(head);
     clear(after);
 
@@ -191,12 +224,18 @@ function boot() {
       session,
       quitHref: backHref,
       quitLabel: `離開練習，回到${isl ? isl.zh : '地圖'}`,
+      // 每答一題就存一次。存的是整場快照（含題目本體），
+      // 所以關掉分頁、當機、手機被切走都接得回來。
+      onAnswer: () => resume.saveLive('lesson', session, { lessonId, courseSlug: slug }),
       onFinish: (s) => finish(s)
     });
     scrollTop();     // 先掛好再捲，否則 scroll anchoring 會把位置拉回去
   }
 
   function finish(session) {
+    // 做完了就沒有「沒做完的那一場」
+    resume.clearLive();
+    resume.clearSpot(lessonId);
     /* 先把作答結果交給間隔重複，再標記完成 */
     store.gradeItems(session.results());
     const perfect = session.perfect();
@@ -340,5 +379,44 @@ function boot() {
     );
   }
 
-  renderTeach();
+  /* ══ 進入點 ════════════════════════════════════════════
+     這一堂如果有沒做完的練習，先問要不要接著做。刻意不直接接續：
+     一整場練習是使用者投入過心力的東西，直接跳進去反而讓人困惑
+     「怎麼一進來就在第 5 題」；而直接重來又會默默丟掉那些心力。
+     問一句，兩條路都留著。 */
+  const live = resume.getLive({ kind: 'lesson', lessonId });
+  if (live) renderResumeQuiz(live); else renderTeach();
+
+  function renderResumeQuiz(saved) {
+    renderHead();
+    clear(after);
+    const s = saved.snapshot;
+    const dayZh = (() => {
+      const d = Math.floor((Date.now() - saved.at) / 86400000);
+      if (d >= 1) return `${d} 天前`;
+      const h = Math.floor((Date.now() - saved.at) / 3600000);
+      return h >= 1 ? `${h} 小時前` : '剛剛';
+    })();
+
+    fill(flow,
+      el('div', { class: 'card card--pad resume-card' },
+        el('div', { class: 'big', text: `${s.cleared}／${s.total}` }),
+        el('h2', { text: '有一場練習還沒做完' }),
+        el('p', { style: { color: 'var(--ink-soft)' },
+          text: `${dayZh}做到這裡。接著做的話，題目和作答紀錄都跟上次一樣。` }),
+        el('div', { class: 'row', style: { 'justify-content': 'center', 'margin-top': '6px' } },
+          el('button', { class: 'btn btn--lg', type: 'button',
+            on: { click: () => startPractice(saved) } },
+            ICON.brain({ width: 20, height: 20 }), el('span', { text: '接著做' })),
+          el('button', { class: 'btn btn--ghost', type: 'button',
+            on: { click: () => { resume.clearLive(); startPractice(); } } },
+            el('span', { text: '重新開始這場練習' })),
+          el('button', { class: 'crumb', type: 'button',
+            on: { click: () => { resume.clearLive(); showResumeNote = ti > 0; renderTeach(); } } },
+            el('span', { text: '先回去看教學' }))
+        )
+      )
+    );
+    fill(after, noteEditor(lessonId), officialRow());
+  }
 }
