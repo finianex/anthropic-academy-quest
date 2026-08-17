@@ -87,9 +87,19 @@ function distractors(target, n, exclude = new Set()) {
     p.all
   ];
 
-  for (const tier of tiers) {
-    for (const cand of shuffle(tier)) {
-      if (out.length >= n) return out;
+  /* 同一堂的候選剛好只夠填滿時，強制留一格給外層。
+     4 個概念的課（154 堂裡有 25 堂）扣掉正解只剩 3 個同課概念，而干擾項
+     也要 3 個——組合只有一種，於是同方向的兩題必然顯示一模一樣的四個選項，
+     看起來就是同一題又出現。留一格給同課程的其他堂之後，每題的選項組合
+     就不同了，而且三個選項裡仍有兩個來自本課，辨別的難度沒有變。 */
+  // 扣掉正解自己——tiers[0] 包含 target，直接拿 length 比會少算一格
+  const usableSameLesson = tiers[0].filter((x) => key(x) !== key(target)).length;
+  const sameLessonCap = usableSameLesson <= n ? Math.max(1, n - 1) : n;
+
+  for (let i = 0; i < tiers.length; i++) {
+    const limit = i === 0 ? sameLessonCap : n;
+    for (const cand of shuffle(tiers[i])) {
+      if (out.length >= limit) break;
       if (taken.has(key(cand))) continue;
       // 文字重複的不能當干擾項——不管它來自哪一堂
       if (seenTitle.has(cand.title) || seenBody.has(cand.body)) continue;
@@ -154,9 +164,13 @@ function chooseTitle(c, lessonId) {
   };
 }
 
-/** 配對：概念名 ↔ 說明。一次涵蓋多個概念。 */
-function matchPairs(concepts, lessonId) {
-  const use = pick(concepts, Math.min(QUIZ.matchPairs, concepts.length));
+/**
+ * 配對：概念名 ↔ 說明。一次涵蓋多個概念。
+ * @param {number} [max] 最多用幾個概念。呼叫端會留幾個給選擇題，
+ *   讓同一個概念不會在一場練習裡被考兩次。
+ */
+function matchPairs(concepts, lessonId, max = QUIZ.matchPairs) {
+  const use = pick(concepts, Math.min(max, QUIZ.matchPairs, concepts.length));
   if (use.length < 3) return null;
   return {
     id: `m:${lessonId}`,
@@ -168,18 +182,25 @@ function matchPairs(concepts, lessonId) {
 }
 
 /**
- * 誤區辨識。兩個方向隨機出：
+ * 誤區辨識。兩個方向：
  *   正向 → 一個誤區 + 三個建議做法，問「哪一個是誤區」
  *   反向 → 一個建議做法 + 三個誤區，問「哪一個是建議做法」
- * 隨機翻轉是必要的：誤區和流程的句子風格不同（一個描述錯誤、一個是指令），
+ * 兩個方向都要出：誤區和流程的句子風格不同（一個描述錯誤、一個是指令），
  * 如果方向固定，答題者靠語氣就能猜對，題目就白出了。
+ *
+ * 方向由 seed 的奇偶決定而不是擲骰子。一場會出好幾題誤區辨識，全部隨機
+ * 的話有機會連續三題都是同一個方向——那三題的題幹一模一樣，看起來就是
+ * 「又是這題」。用奇偶保證方向交替，同時 seed 本身有隨機起點，所以不會
+ * 每次練習都從同一個方向開始。
+ *
+ * @param {number} seed 用來挑第幾個誤區，並決定方向
  */
 function pitfallItem(note, lessonId, seed) {
   const pits = (note.pitfalls || []).filter(Boolean);
   const steps = (note.workflow || []).filter(Boolean);
   if (pits.length < 1 || steps.length < 3) return null;
 
-  const inverted = coin();
+  const inverted = seed % 2 === 1;
 
   /* 誤區與流程步驟偶爾會出現一模一樣的句子。真發生時，正解會同時出現在
      干擾項裡——那一題就有兩個「正確」選項。所以挑干擾項時要把跟正解同字
@@ -222,18 +243,57 @@ export function buildExercises(note, lessonId) {
   const concepts = conceptsOf(note, lessonId);
   const items = [];
 
-  /* 每個概念一題，交替考「名→說明」與「說明→名」，兩個方向都練到 */
-  concepts.forEach((c, i) => {
-    const q = (i % 2 === 0) ? chooseBody(c, lessonId) : chooseTitle(c, lessonId);
-    if (q) items.push(q);
-  });
+  /* 同一場裡不允許兩題出現一模一樣的四個選項。
+     干擾項優先取「同一堂課的其他概念」——那是刻意的，考的就是分辨這一課的
+     A 和 B。但 5 個概念的課只剩 2 題選擇題，各自從另外 4 個抽 3 個，抽到
+     同一組的機率是 3/16；那兩題會顯示完全相同的四句話、只有正解不同，
+     看起來就是同一題又出現了一次。實測 16% 的場次會發生。
+     重抽最多 6 次，每次獨立，撞 6 次的機率約十萬分之三。 */
+  const usedOptions = new Set();
+  const optionSig = (q) => (q?.options ? q.options.map((o) => o.text).sort().join(' ') : null);
+  const pushUnique = (build) => {
+    let q = null;
+    for (let i = 0; i < 6; i++) {
+      q = build();
+      if (!q) return;
+      const s = optionSig(q);
+      if (!s || !usedOptions.has(s)) { if (s) usedOptions.add(s); items.push(q); return; }
+    }
+    // 六次都撞代表干擾項池真的太小，收下比少一題好
+    items.push(q);
+  };
 
-  const m = matchPairs(concepts, lessonId);
-  if (m) items.push(m);
+  /* 一個概念在一場練習裡只考一次。
+     以前是「每個概念一題選擇題」再加一題涵蓋 4 個概念的配對題，於是
+     實測 100% 的練習都有概念被考兩次、平均每場 3.95 個——那就是使用者
+     看到的「這題剛剛不是問過了」。
+     現在配對題先挑走一批概念，剩下的才出選擇題。 */
+  let matched = new Set();
+  // 至少要留 2 個概念給選擇題，不然整場只剩一題配對加誤區題
+  const m = concepts.length >= 5
+    ? matchPairs(concepts, lessonId, concepts.length - 2)
+    : null;
+  if (m) {
+    m.pairs.forEach((p) => matched.add(p.key));
+    items.push(m);
+  }
 
-  for (let i = 0; i < QUIZ.pitfallItems; i++) {
-    const p = pitfallItem(note, lessonId, i);
-    if (p) items.push({ ...p, id: `p:${lessonId}:${i}` });
+  /* 沒被配對題挑走的概念各出一題，交替考「名→說明」與「說明→名」 */
+  concepts.filter((c) => !matched.has(String(c.idx)))
+    .forEach((c, i) => {
+      pushUnique(() => ((i % 2 === 0) ? chooseBody(c, lessonId) : chooseTitle(c, lessonId)));
+    });
+
+  /* 誤區辨識：每一條誤區各出一題（上限 QUIZ.pitfallMax）。
+     起點隨機，方向由索引奇偶交替，所以同一場不會出現三題長得一樣的題幹。 */
+  const pitCount = Math.min((note.pitfalls || []).filter(Boolean).length, QUIZ.pitfallMax);
+  const start = Math.floor(Math.random() * Math.max(1, pitCount));
+  for (let i = 0; i < pitCount; i++) {
+    const seed = start + i;
+    pushUnique(() => {
+      const p = pitfallItem(note, lessonId, seed);
+      return p ? { ...p, id: `p:${lessonId}:${seed % pitCount}` } : null;
+    });
   }
 
   return shuffle(items);
@@ -277,7 +337,8 @@ export function itemKeysOf(note, lessonId) {
   const pits = (note.pitfalls || []).filter(Boolean);
   const steps = (note.workflow || []).filter(Boolean);
   if (pits.length >= 1 && steps.length >= 3) {
-    for (let i = 0; i < QUIZ.pitfallItems; i++) keys.push(`p:${lessonId}:${i}`);
+    const n = Math.min(pits.length, QUIZ.pitfallMax);
+    for (let i = 0; i < n; i++) keys.push(`p:${lessonId}:${i}`);
   }
   return keys;
 }
